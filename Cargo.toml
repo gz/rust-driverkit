@@ -1,0 +1,9 @@
+[package]
+name = "driverkit"
+version = "0.1.0"
+authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
+
+[dependencies]
+byteorder = "0.5"
+mmap = "*"
+libc = "*"
