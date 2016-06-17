@@ -108,7 +108,7 @@ impl DevMem {
 
 #[cfg(test)]
 mod tests {
-    use memops::*;
+    use mem::*;
 
     #[test]
     fn alloc_1page() {
