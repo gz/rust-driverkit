@@ -3,21 +3,24 @@ use std::time::{SystemTime, Duration};
 
 #[derive(Debug)]
 pub enum WaitError {
-    Timeout
+    Timeout,
 }
 
 /// Wait until a given condition is satisfied or a timeout is reached.
 /// Returns true if condition is satisfied or false if the timeout was reached instead.
 pub fn wait_until<F>(cond_fn: F, max_wait: Duration) -> Result<(), WaitError>
-    where F: Fn() -> bool {
+    where F: Fn() -> bool
+{
 
     let now = SystemTime::now();
 
     while !cond_fn() {
         match now.elapsed() {
-            Ok(waited) => if waited > max_wait {
-                return Err(WaitError::Timeout);
-            },
+            Ok(waited) => {
+                if waited > max_wait {
+                    return Err(WaitError::Timeout);
+                }
+            }
             Err(e) => return Err(WaitError::Timeout),
         }
 

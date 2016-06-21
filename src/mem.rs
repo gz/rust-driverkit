@@ -4,21 +4,21 @@ use std::fs::File;
 
 use mmap;
 use libc;
-use libc::{MAP_SHARED, MAP_ANON, MAP_HUGETLB, MAP_POPULATE};
+use libc::{MAP_SHARED, MAP_PRIVATE, MAP_ANON, MAP_HUGETLB, MAP_POPULATE};
 use byteorder::{ReadBytesExt, LittleEndian};
 
 /// Represents a consecutive region of physical memory pinned in memory.
 pub struct DevMem {
-    mapping: mmap::MemoryMap
+    mapping: mmap::MemoryMap,
 }
 
 const MAP_HUGE_SHIFT: usize = 26;
 const MAP_HUGE_2MB: i32 = 21 << MAP_HUGE_SHIFT;
 const MAP_HUGE_1GB: i32 = 30 << MAP_HUGE_SHIFT;
 
-pub const FOUR_KIB: usize = 4*1024;
-pub const TWO_MIB: usize = 2*1024*1024;
-pub const ONE_GIB: usize = 1024*1024*1024;
+pub const FOUR_KIB: usize = 4 * 1024;
+pub const TWO_MIB: usize = 2 * 1024 * 1024;
+pub const ONE_GIB: usize = 1024 * 1024 * 1024;
 const PAGESIZE: u64 = FOUR_KIB as u64;
 
 
@@ -41,14 +41,14 @@ fn read_pagemap(virtual_page: u64) -> io::Result<u64> {
 
     // Get the physical address by multiplying the PFN bits with the page size
     let pfn_mask: u64 = (1 << 55) - 1;
-    Ok( (value & pfn_mask) * PAGESIZE)
+    Ok((value & pfn_mask) * PAGESIZE)
 }
 
 
 #[derive(Debug)]
 pub enum AllocError {
     Map,
-    Pin
+    Pin,
 }
 
 impl From<mmap::MapError> for AllocError {
@@ -58,7 +58,6 @@ impl From<mmap::MapError> for AllocError {
 }
 
 impl DevMem {
-
     /// Allocates a chunk of consecutive physical, pinned memory.
     /// This should be usable by devices that do DMA.
     pub fn alloc(size: usize) -> Result<DevMem, AllocError> {
@@ -66,16 +65,14 @@ impl DevMem {
 
         let mut non_standard_flags = MAP_SHARED | MAP_ANON | MAP_POPULATE;
         match size {
-            TWO_MIB =>
-                non_standard_flags |= MAP_HUGETLB | MAP_HUGE_2MB,
-            ONE_GIB =>
-                non_standard_flags |= MAP_HUGETLB | MAP_HUGE_1GB,
+            TWO_MIB => non_standard_flags |= MAP_HUGETLB | MAP_HUGE_2MB,
+            ONE_GIB => non_standard_flags |= MAP_HUGETLB | MAP_HUGE_1GB,
             _ => (),
         }
 
-        let flags = [ mmap::MapOption::MapNonStandardFlags(non_standard_flags),
-                      mmap::MapOption::MapReadable,
-                      mmap::MapOption::MapWritable ];
+        let flags = [mmap::MapOption::MapNonStandardFlags(non_standard_flags),
+                     mmap::MapOption::MapReadable,
+                     mmap::MapOption::MapWritable];
         let res = try!(mmap::MemoryMap::new(size, &flags));
 
         // Make sure memory is not swapped:
@@ -85,7 +82,7 @@ impl DevMem {
         }
         assert!(lock_ret == 0);
 
-        Ok( DevMem { mapping: res } )
+        Ok(DevMem { mapping: res })
     }
 
     /// Returns the physical address of the memory region.
@@ -99,10 +96,14 @@ impl DevMem {
     }
 
     /// Returns a pointer to the memory region.
-    pub fn data(&self) -> *mut u8 { self.mapping.data() }
+    pub fn data(&self) -> *mut u8 {
+        self.mapping.data()
+    }
 
     /// Returns the size of the memory region.
-    pub fn len(&self) -> usize { self.mapping.len() }
+    pub fn len(&self) -> usize {
+        self.mapping.len()
+    }
 }
 
 
@@ -114,7 +115,9 @@ mod tests {
     fn alloc_1page() {
         let res = DevMem::alloc(FOUR_KIB);
         match res {
-            Err(e) => { panic!("Can not allocate: {:?}", e); },
+            Err(e) => {
+                panic!("Can not allocate: {:?}", e);
+            }
             Ok(f) => (),
         }
     }
@@ -123,10 +126,10 @@ mod tests {
     fn alloc_2mib() {
         let res = DevMem::alloc(TWO_MIB);
         match res {
-            Err(e) => { panic!("Can not allocate: {:?}", e); },
-            Ok(r) =>  {
-                assert!(r.physical_address() % TWO_MIB as u64 == 0)
+            Err(e) => {
+                panic!("Can not allocate: {:?}", e);
             }
+            Ok(r) => assert!(r.physical_address() % TWO_MIB as u64 == 0),
         }
     }
 
@@ -134,10 +137,10 @@ mod tests {
     fn alloc_1gib() {
         let res = DevMem::alloc(ONE_GIB);
         match res {
-            Err(e) => { panic!("Can not allocate: {:?}", e); },
-            Ok(r) => {
-                assert!( (r.physical_address() % ONE_GIB as u64) == 0)
-            },
+            Err(e) => {
+                panic!("Can not allocate: {:?}", e);
+            }
+            Ok(r) => assert!((r.physical_address() % ONE_GIB as u64) == 0),
         }
     }
 }
