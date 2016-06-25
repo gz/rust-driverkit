@@ -22,7 +22,8 @@ macro_rules! bit_set_fn {
     ($doc:meta, $fun:ident, $bit:expr) => (
         #[$doc]
         pub fn $fun(&mut self) {
-            self.0.set(self.0.get() | 1 << $bit);
+            let current = self.0.get();
+            self.0.set(current | 1 << $bit);
         }
     )
 }
@@ -32,7 +33,8 @@ macro_rules! bit_clear_fn {
     ($doc:meta, $fun:ident, $bit:expr) => (
         #[$doc]
         pub fn $fun(&mut self) {
-            self.0.set(self.0.get() & !(1 << $bit)) ;
+            let current = self.0.get();
+            self.0.set(current & !(1 << $bit)) ;
         }
     )
 }
@@ -96,7 +98,9 @@ pub fn bits_set(r: &mut Volatile<u32>, from: usize, to: usize, bits: u32) {
         true => u32::max_value() << from,
         false => ((1 << (to + 1)) - 1) << from,
     };
-    r.set((r.get() & !mask) | ((bits << from) & mask));
+
+    let current = r.get();
+    r.set((current & !mask) | ((bits << from) & mask));
 }
 
 pub fn bits_set_16(r: &mut Volatile<u16>, from: usize, to: usize, bits: u16) {
@@ -109,7 +113,8 @@ pub fn bits_set_16(r: &mut Volatile<u16>, from: usize, to: usize, bits: u16) {
         false => ((1 << (to + 1)) - 1) << from,
     };
 
-    r.set((r.get() & !mask) | ((bits << from) & mask));
+    let current = r.get();
+    r.set((current & !mask) | ((bits << from) & mask));
 }
 
 

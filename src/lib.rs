@@ -1,8 +1,15 @@
+#![feature(libc)]
 #![feature(core_intrinsics)]
 extern crate core;
 extern crate libc;
-extern crate mmap;
 extern crate byteorder;
+
+#[cfg(target_os = "linux")]
+extern crate mmap;
+
+#[cfg(target_os = "barrelfish")]
+extern crate libbarrelfish;
+
 
 use core::mem::uninitialized;
 use core::ops::{BitAnd, BitOr, Not};
@@ -12,7 +19,20 @@ use core::fmt;
 #[macro_use]
 pub mod bitops;
 pub mod timedops;
-pub mod mem;
+
+#[cfg(target_os = "barrelfish")]
+pub mod barrelfish;
+
+#[cfg(target_os = "linux")]
+pub mod linux;
+
+mod mem {
+    #[cfg(target_os = "barrelfish")]
+    pub use barrelfish::mem::*;
+
+    #[cfg(target_os = "linux")]
+    pub use linux::mem::*;
+}
 
 #[repr(packed)]
 pub struct Volatile<T> {
@@ -36,7 +56,8 @@ impl<T> Volatile<T>
         unsafe { volatile_load(&self.value) }
     }
 
-    pub fn set(&self, value: T) {
+    #[inline]
+    pub fn set(&mut self, value: T) {
         unsafe { volatile_store(&self.value as *const T as *mut T, value) }
     }
 }
