@@ -40,7 +40,7 @@ macro_rules! bit_clear_fn {
 }
 
 /// Return a range of bits out of a 32-bit data-type.
-pub fn bits_get(r: &Volatile<u32>, from: usize, to: usize) -> u32 {
+pub fn bits_get(r: Volatile<u32>, from: usize, to: usize) -> u32 {
     assert!(from <= 31);
     assert!(to <= 31);
     assert!(from <= to);
@@ -52,41 +52,6 @@ pub fn bits_get(r: &Volatile<u32>, from: usize, to: usize) -> u32 {
 
     (r.get() & mask) >> from
 }
-// #[macro_export]
-// macro_rules! bit_set {
-// ($r:expr, $to:expr, $from:expr, $bits:expr) => (
-// assert!($from <= $to);
-// let mask = match $to == 31 {
-// true => u32::max_value() << $from,
-// false => ((1 << ($to+1)) - 1) << $from
-// };
-// r = (*r & !mask) | ((bits << $from) & mask);
-// )
-// }
-//
-
-// where T:
-// One +
-// Add<Output = T> +
-// Sub<Output = T> +
-// Not<Output = T> +
-// BitAnd<Output = T> +
-// BitOr<Output = T> +
-// Shl<T> +
-// Shl<usize, Output = T> +
-// Zero
-
-// use std::ops::*;
-// use std::num::*;
-//
-// pub fn bits_set<T: Integer>(r: &mut T, from: usize, to: usize, bits: T)
-// where T: Add<usize> + Shl<usize, Output = T>, usize: Add<T, Output=T>
-// {
-// let mask: T = ((1 << (to+T::one())) - T::one()) << from;
-// r = (*r & !mask) | ((bits << from) & mask);
-// }
-
-/// Set a range of bits in a 32-bit data-type.
 
 pub fn bits_set(r: &mut Volatile<u32>, from: usize, to: usize, bits: u32) {
     assert!(from <= 31);

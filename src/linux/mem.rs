@@ -50,7 +50,7 @@ pub enum AllocError {
 }
 
 impl From<mmap::MapError> for AllocError {
-    fn from(e: mmap::MapError) -> Self {
+    fn from(_e: mmap::MapError) -> Self {
         AllocError::Map
     }
 }
