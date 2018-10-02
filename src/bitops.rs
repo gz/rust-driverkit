@@ -1,10 +1,10 @@
-use ::Volatile;
+use Volatile;
 
 #[macro_export]
 macro_rules! is_bit_set {
-    ($field:expr, $bit:expr) => (
+    ($field:expr, $bit:expr) => {
         $field.get() & (1 << $bit) > 0
-    )
+    };
 }
 
 #[macro_export]
@@ -86,7 +86,6 @@ pub fn bits_get(r: &Volatile<u32>, from: usize, to: usize) -> u32 {
 // r = (*r & !mask) | ((bits << from) & mask);
 // }
 
-
 /// Set a range of bits in a 32-bit data-type.
 
 pub fn bits_set(r: &mut Volatile<u32>, from: usize, to: usize, bits: u32) {
@@ -117,7 +116,6 @@ pub fn bits_set_16(r: &mut Volatile<u16>, from: usize, to: usize, bits: u16) {
     r.set((current & !mask) | ((bits << from) & mask));
 }
 
-
 #[cfg(test)]
 mod tests {
     use bitops::*;
@@ -128,7 +126,6 @@ mod tests {
             for to in from..32 {
                 let mut r: Volatile<u32> = Volatile::with_value(0);
                 let all_ones: usize = (1 << (to - from + 1)) - 1;
-
 
                 bits_set(&mut r, from, to, all_ones as u32);
 

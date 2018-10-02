@@ -4,7 +4,7 @@ use std::io::Seek;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use libc;
-use libc::{MAP_ANON, MAP_HUGETLB, MAP_POPULATE, MAP_PRIVATE, MAP_SHARED};
+use libc::{MAP_ANON, MAP_HUGETLB, MAP_POPULATE, MAP_SHARED};
 use mmap;
 
 /// Represents a consecutive region of physical memory pinned in memory.
@@ -92,12 +92,16 @@ impl DevMem {
 
     /// Returns the virtual address of the memory region.
     pub fn virtual_address(&self) -> usize {
-        self.data() as usize
+        self.as_mut_ptr() as usize
     }
 
     /// Returns a pointer to the memory region.
-    pub fn data(&self) -> *mut u8 {
+    pub fn as_mut_ptr(&self) -> *mut u8 {
         self.mapping.data()
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(self.mapping.data(), self.len()) }
     }
 
     /// Returns the size of the memory region.

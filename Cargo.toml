@@ -1,15 +1,16 @@
 [package]
 name = "driverkit"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
+description = "A driver framework defining standard types and interfaces for writing device drivers."
 
 [target.x86_64-unknown-linux-gnu.dependencies]
-mmap = "*"
-libc = "*"
+mmap = "0.1.*"
+libc = "0.2.*"
 
 [dependencies]
-#num = "0.1.32"
 byteorder = "0.5"
+x86 = "0.11.*"
 
 [[bin]]
 name = "testdrive"
