@@ -137,6 +137,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn alloc_1gib() {
         let res = DevMem::alloc(ONE_GIB);
         match res {

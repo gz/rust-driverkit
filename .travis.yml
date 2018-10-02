@@ -27,6 +27,11 @@ install:
   - source ~/.cargo/env || true
   - rustup component add rustfmt-preview --toolchain nightly
 
+before_script:
+  - sudo sysctl -w vm.nr_hugepages=5
+  - sudo mkdir -p /mnt/huge
+  - sudo mount -t hugetlbfs nodev /mnt/huge
+
 script:
   - bash ci/script.sh
   - cargo +nightly fmt --version
