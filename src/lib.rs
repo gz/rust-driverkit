@@ -3,12 +3,17 @@
 extern crate byteorder;
 extern crate core;
 extern crate libc;
+#[macro_use(matches, assert_matches)]
+extern crate matches;
 
 #[cfg(target_os = "linux")]
 extern crate mmap;
 
 #[cfg(target_os = "barrelfish")]
 extern crate libbarrelfish;
+
+#[macro_use]
+extern crate log;
 
 extern crate x86;
 
@@ -27,27 +32,62 @@ mod barrelfish;
 #[cfg(target_os = "linux")]
 mod linux;
 
-pub mod mem {
-    #[cfg(target_os = "barrelfish")]
-    pub use barrelfish::mem::*;
+#[cfg(target_os = "barrelfish")]
+pub use barrelfish::*;
 
-    #[cfg(target_os = "linux")]
-    pub use linux::mem::*;
+#[cfg(target_os = "linux")]
+pub use linux::*;
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum DriverState {
+    Uninitialized,
+    Initialized,
+    Attached(usize),
+    Detached,
+    Destroyed,
 }
 
 /// Driver life-cycle management trait
 pub trait DriverControl: Sized {
-    fn init(&mut self) {}
+    /// Initialize the device
+    /// DriverState must be Uninitialized
+    fn init(&mut self) {
+        assert!(self.state() == DriverState::Uninitialized);
+        self.set_state(DriverState::Initialized);
+    }
 
-    fn attach(&mut self);
+    /// Attach the driver to the device (claim ownership)
+    /// DriverState must be Initialized, Detached or Attached(x)
+    fn attach(&mut self) {
+        assert!(
+            self.state() == DriverState::Initialized
+                || self.state() == DriverState::Detached
+                || matches!(self.state(), DriverState::Attached(_))
+        );
+        self.set_state(DriverState::Attached(0));
+    }
 
-    fn detach(&mut self);
+    /// Detach the driver from the device
+    /// DriverState must be Detached, Attached(x)
+    fn detach(&mut self) {
+        assert!(matches!(self.state(), DriverState::Attached(_)));
+        self.set_state(DriverState::Detached);
+    }
 
-    fn set_sleep_level(&mut self, level: usize);
+    /// Detach the driver from the device
+    /// DriverState must be Detached, Attached(x)
+    fn set_sleep_level(&mut self, level: usize) {
+        assert_matches!(self.state(), DriverState::Attached(_));
+        self.set_state(DriverState::Attached(level));
+    }
 
     fn destroy(mut self) {
-        self.detach();
+        assert!(matches!(self.state(), DriverState::Attached(_)));
+        self.set_state(DriverState::Destroyed);
     }
+
+    fn state(&self) -> DriverState;
+    fn set_state(&mut self, DriverState);
 }
 
 #[repr(packed)]
