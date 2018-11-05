@@ -1,3 +1,5 @@
+pub use bit_field::*;
+
 use Volatile;
 
 #[macro_export]

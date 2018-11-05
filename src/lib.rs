@@ -1,20 +1,27 @@
-#![feature(libc)]
 #![feature(core_intrinsics)]
+#![cfg_attr(unix, feature(libc))]
+#![no_std]
+
+#[cfg(unix)]
+extern crate std;
+
+#[cfg(unix)]
 extern crate byteorder;
-extern crate core;
+#[cfg(unix)]
 extern crate libc;
-#[macro_use(matches, assert_matches)]
+#[cfg_attr(unix, macro_use(matches, assert_matches))]
+#[cfg(unix)]
 extern crate matches;
 
-#[cfg(target_os = "linux")]
+#[cfg(unix)]
 extern crate mmap;
 
 #[cfg(target_os = "barrelfish")]
 extern crate libbarrelfish;
 
-#[macro_use]
 extern crate log;
 
+extern crate bit_field;
 extern crate x86;
 
 use core::fmt;
@@ -24,6 +31,7 @@ use core::ops::{BitAnd, BitOr, Not};
 
 #[macro_use]
 pub mod bitops;
+#[cfg(unix)]
 pub mod timedops;
 
 #[cfg(target_os = "barrelfish")]
@@ -59,6 +67,7 @@ pub trait DriverControl: Sized {
     /// Attach the driver to the device (claim ownership)
     /// DriverState must be Initialized, Detached or Attached(x)
     fn attach(&mut self) {
+        #[cfg(unix)]
         assert!(
             self.state() == DriverState::Initialized
                 || self.state() == DriverState::Detached
@@ -70,6 +79,7 @@ pub trait DriverControl: Sized {
     /// Detach the driver from the device
     /// DriverState must be Detached, Attached(x)
     fn detach(&mut self) {
+        #[cfg(unix)]
         assert!(matches!(self.state(), DriverState::Attached(_)));
         self.set_state(DriverState::Detached);
     }
@@ -77,11 +87,13 @@ pub trait DriverControl: Sized {
     /// Detach the driver from the device
     /// DriverState must be Detached, Attached(x)
     fn set_sleep_level(&mut self, level: usize) {
+        #[cfg(unix)]
         assert_matches!(self.state(), DriverState::Attached(_));
         self.set_state(DriverState::Attached(level));
     }
 
     fn destroy(mut self) {
+        #[cfg(unix)]
         assert!(matches!(self.state(), DriverState::Attached(_)));
         self.set_state(DriverState::Destroyed);
     }
@@ -90,7 +102,7 @@ pub trait DriverControl: Sized {
     fn set_state(&mut self, DriverState);
 }
 
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct Volatile<T> {
     value: T,
 }
