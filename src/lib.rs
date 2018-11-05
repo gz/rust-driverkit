@@ -20,7 +20,7 @@ extern crate mmap;
 #[cfg(target_os = "barrelfish")]
 extern crate libbarrelfish;
 
-#[macro_use]
+#[cfg_attr(unix, macro_use)]
 extern crate log;
 
 extern crate bit_field;
