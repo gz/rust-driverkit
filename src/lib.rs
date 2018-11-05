@@ -2,6 +2,7 @@
 #![cfg_attr(unix, feature(libc))]
 #![no_std]
 
+#[cfg_attr(unix, macro_use)]
 #[cfg(unix)]
 extern crate std;
 
