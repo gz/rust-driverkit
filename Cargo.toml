@@ -15,7 +15,7 @@ byteorder = "0.5"
 matches = "0.1.8"
 
 [dependencies]
-x86 = "0.11.*"
+x86 = "0.19"
 log = "0.4"
 bit_field = "0.9"
 
