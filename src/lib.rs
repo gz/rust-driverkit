@@ -28,7 +28,6 @@ extern crate x86;
 
 use core::fmt;
 use core::intrinsics::{volatile_load, volatile_store};
-use core::mem::uninitialized;
 use core::ops::{BitAnd, BitOr, Not};
 
 #[macro_use]
@@ -115,7 +114,7 @@ where
 {
     pub fn new() -> Self {
         Volatile {
-            value: unsafe { uninitialized() },
+            value: unsafe { core::mem::MaybeUninit::zeroed().assume_init() },
         }
     }
 
