@@ -26,13 +26,13 @@ const PAGESIZE: u64 = FOUR_KIB as u64;
 fn read_pagemap(virtual_page: u64) -> io::Result<u64> {
     assert!(virtual_page % PAGESIZE == 0);
 
-    let mut f = try!(File::open("/proc/self/pagemap"));
+    let mut f = File::open("/proc/self/pagemap")?;
 
     // The pagemap contains one 64-bit value for each virtual page:
     const PAGEMAP_ENTRY_SIZE: u64 = 8;
     let start = (virtual_page / PAGESIZE) * PAGEMAP_ENTRY_SIZE;
-    try!(f.seek(io::SeekFrom::Start(start)));
-    let value = try!(f.read_u64::<LittleEndian>());
+    f.seek(io::SeekFrom::Start(start))?;
+    let value = f.read_u64::<LittleEndian>()?;
 
     // Sanity check that the page is not swapped:
     let present_bit = 1 << 63;
@@ -73,7 +73,7 @@ impl DevMem {
             mmap::MapOption::MapReadable,
             mmap::MapOption::MapWritable,
         ];
-        let res = try!(mmap::MemoryMap::new(size, &flags));
+        let res = mmap::MemoryMap::new(size, &flags)?;
 
         // Make sure memory is not swapped:
         let lock_ret = unsafe { libc::mlock(res.data() as *const libc::c_void, res.len()) };
