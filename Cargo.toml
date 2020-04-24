@@ -1,6 +1,6 @@
 [package]
 name = "driverkit"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 readme = "README.md"
 description = "A driver framework defining standard types and interfaces for writing device drivers."
@@ -15,7 +15,7 @@ byteorder = "0.5"
 matches = "0.1.8"
 
 [dependencies]
-x86 = "0.19"
+x86 = "0.32"
 log = "0.4"
 bit_field = "0.9"
 
