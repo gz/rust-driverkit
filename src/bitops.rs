@@ -11,34 +11,34 @@ macro_rules! is_bit_set {
 
 #[macro_export]
 macro_rules! bit_get_fn {
-    ($doc:meta, $fun:ident, $bit:expr) => (
+    ($doc:meta, $fun:ident, $bit:expr) => {
         #[$doc]
         pub fn $fun(&self) -> bool {
             is_bit_set!(self.0, $bit)
         }
-    )
+    };
 }
 
 #[macro_export]
 macro_rules! bit_set_fn {
-    ($doc:meta, $fun:ident, $bit:expr) => (
+    ($doc:meta, $fun:ident, $bit:expr) => {
         #[$doc]
         pub fn $fun(&mut self) {
             let current = self.0.get();
             self.0.set(current | 1 << $bit);
         }
-    )
+    };
 }
 
 #[macro_export]
 macro_rules! bit_clear_fn {
-    ($doc:meta, $fun:ident, $bit:expr) => (
+    ($doc:meta, $fun:ident, $bit:expr) => {
         #[$doc]
         pub fn $fun(&mut self) {
             let current = self.0.get();
-            self.0.set(current & !(1 << $bit)) ;
+            self.0.set(current & !(1 << $bit));
         }
-    )
+    };
 }
 
 /// Return a range of bits out of a 32-bit data-type.
