@@ -35,6 +35,9 @@ pub mod bitops;
 #[cfg(unix)]
 pub mod timedops;
 
+/// Interface definitions for network devices.
+pub mod net;
+
 #[cfg(target_os = "barrelfish")]
 mod barrelfish;
 
@@ -100,7 +103,7 @@ pub trait DriverControl: Sized {
     }
 
     fn state(&self) -> DriverState;
-    fn set_state(&mut self, DriverState);
+    fn set_state(&mut self, ds: DriverState);
 }
 
 #[repr(C, packed)]

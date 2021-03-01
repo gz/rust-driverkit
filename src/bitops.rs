@@ -1,6 +1,6 @@
 pub use bit_field::*;
 
-use Volatile;
+use crate::Volatile;
 
 #[macro_export]
 macro_rules! is_bit_set {
