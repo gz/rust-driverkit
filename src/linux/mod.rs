@@ -8,7 +8,7 @@ use std::process::Command;
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
-use MsrInterface;
+use crate::MsrInterface;
 
 pub mod mem;
 

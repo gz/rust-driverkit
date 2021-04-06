@@ -112,7 +112,7 @@ impl DevMem {
 
 #[cfg(test)]
 mod tests {
-    use mem::*;
+    use crate::mem::*;
 
     #[test]
     fn alloc_1page() {
