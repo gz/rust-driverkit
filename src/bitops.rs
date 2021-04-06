@@ -85,7 +85,7 @@ pub fn bits_set_16(r: &mut Volatile<u16>, from: usize, to: usize, bits: u16) {
 
 #[cfg(test)]
 mod tests {
-    use super::{bits_set, bits_get};
+    use super::{bits_get, bits_set};
     use crate::Volatile;
 
     #[test]

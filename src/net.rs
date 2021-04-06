@@ -1,4 +1,5 @@
-use custom_error::custom_error;
+use custom_error_core::custom_error;
+
 pub struct PktInfo {
     pub qsidx: usize,
 }
