@@ -1,4 +1,6 @@
 #![feature(core_intrinsics)]
+#![feature(allocator_api)]
+#![feature(nonnull_slice_from_raw_parts)]
 #![cfg_attr(unix, feature(libc))]
 #![no_std]
 
@@ -32,6 +34,7 @@ use core::ops::{BitAnd, BitOr, Not};
 
 #[macro_use]
 pub mod bitops;
+pub mod iomem;
 #[cfg(unix)]
 pub mod timedops;
 
