@@ -121,9 +121,8 @@ impl IOBuf {
         let remaining_capacity = self.buf.capacity() - offset;
         let cnt = cmp::min(remaining_capacity, src.len());
 
-        for i in 0..cnt {
-            self.buf[offset + i] = src[i];
-        }
+        // copy the slice
+        self.buf[offset..offset+cnt].copy_from_slice(&src[0..cnt]);
 
         Ok(cnt)
     }
@@ -141,9 +140,8 @@ impl IOBuf {
         }
 
         let cnt = cmp::min(self.buf.len() - offset, dst.len());
-        for i in 0..cnt {
-            dst[i] = self.buf[offset + i];
-        }
+        // copy the slice
+        dst[0..cnt].copy_from_slice(&self.buf[offset..offset + cnt]);
         Ok(cnt)
     }
 
