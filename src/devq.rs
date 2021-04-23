@@ -1,15 +1,14 @@
-use std::vec::Vec;
 use custom_error_core::custom_error;
+use std::vec::Vec;
 
 // library includes
 use crate::iomem::IOBufChain;
 
-
 custom_error! {pub DevQueueError
-    Unknown = "Unknown error",
+    BufferInvalid = "one of the supplied buffers was invalid",
+    OutOfMemory = "the operation caused an out-of-memory condition",
+    QueueFailure = "Unknown queue failer",
 }
-
-
 
 /// A device queue interface supporting enqueue/dequeueu
 pub trait DevQueue {
@@ -29,8 +28,7 @@ pub trait DevQueue {
      * notifies the device that there have been new descriptors added to the queue
      * returns the number of buffers that have been handed over to the device
      */
-    fn flush(&mut self) -> Result<usize,DevQueueError>;
-
+    fn flush(&mut self) -> Result<usize, DevQueueError>;
 
     /**
      * Checks if new buffers can be enqueued and returns the number of available slots.
@@ -41,7 +39,6 @@ pub trait DevQueue {
      */
     fn can_enqueue(&self, exact: bool) -> Result<usize, DevQueueError>;
 
-
     /**
      * dequeues up to a number of `cnt` buffers from the queue. The buffers are returned
      * as the chains they were enqueued in.
@@ -50,7 +47,6 @@ pub trait DevQueue {
      */
     fn dequeue(&mut self, cnt: usize) -> Result<Vec<IOBufChain>, DevQueueError>;
 
-
     /**
      * Checks if there are buffers ready to be dequeued and returns the count of processed
      * buffers.
@@ -58,5 +54,4 @@ pub trait DevQueue {
      *  - exact: flag indicating whether the exact amount should be calculated
      */
     fn can_dequeue(&mut self, exact: bool) -> Result<usize, DevQueueError>;
-
 }

@@ -1,15 +1,12 @@
-use std::alloc::{Allocator, Layout};
-use std::alloc::AllocError;
-use std::vec::Vec;
-use std::ptr::NonNull;
 use custom_error_core::custom_error;
+use std::alloc::AllocError;
+use std::alloc::{Allocator, Layout};
+use std::ptr::NonNull;
+use std::vec::Vec;
 
 use std::cmp;
 
-
 extern crate alloc;
-
-
 
 // custom error for the IOMemory
 custom_error! {pub IOMemError
@@ -26,15 +23,13 @@ custom_error! {pub IOMemError
 /// represents an IOMemAllocator that backs IOBufs
 pub struct IOMemAllocator {
     /// the layout established for this allocator holding the alignment and
-    layout: Layout
+    layout: Layout,
 }
 
 /// IOMemAllocator Implementation
 impl IOMemAllocator {
-    fn new(layout: Layout) -> Result<IOMemAllocator,IOMemError> {
-        Ok(IOMemAllocator {
-            layout: layout
-        })
+    fn new(layout: Layout) -> Result<IOMemAllocator, IOMemError> {
+        Ok(IOMemAllocator { layout: layout })
     }
 }
 
@@ -52,9 +47,9 @@ unsafe impl Allocator for IOMemAllocator {
         unsafe {
             // do the actual allocation
             // TODO: refer to the OS allocator
-            let ptr : *mut u8 = alloc::alloc::alloc_zeroed(alloc_layout);
+            let ptr: *mut u8 = alloc::alloc::alloc_zeroed(alloc_layout);
             if ptr.is_null() {
-                return Err(AllocError)
+                return Err(AllocError);
             }
 
             // wrap in in NonNull, remove option type
@@ -74,38 +69,36 @@ unsafe impl Allocator for IOMemAllocator {
     }
 }
 
-
 /*
  * =================================================================================================
  * IOBuf
  * =================================================================================================
  */
 
-
 /// TODO: move this somewhere else
-const KERNEL_BASE : u64 = 0xffff000000000000;
+const KERNEL_BASE: u64 = 0xffff000000000000;
 
 /// represents an IO buffer
 pub struct IOBuf {
     /// the address to be used by the device/hardware. TODO make this dependent whether its mapped
     ioaddr: u64,
     ///
-    buf : Vec<u8, IOMemAllocator>
+    buf: Vec<u8, IOMemAllocator>,
 }
 
 impl IOBuf {
-    pub fn new(layout: Layout) -> Result<IOBuf,IOMemError> {
+    pub fn new(layout: Layout) -> Result<IOBuf, IOMemError> {
         // get the aligned buffer length
 
         // get the layouf for the allocation
         let allocator = IOMemAllocator::new(layout);
 
-        let buf : Vec<u8, IOMemAllocator> = Vec::with_capacity_in(layout.size(), allocator.unwrap());
+        let buf: Vec<u8, IOMemAllocator> = Vec::with_capacity_in(layout.size(), allocator.unwrap());
 
         // for now just using the phys addr... TODO: setup with
         let ioaddr = buf.as_ptr() as u64 - KERNEL_BASE;
 
-        Ok(IOBuf{
+        Ok(IOBuf {
             ioaddr: ioaddr,
             buf: buf,
         })
@@ -118,27 +111,26 @@ impl IOBuf {
 
     /// copy data in at a given offset
     pub fn copy_in_at(&mut self, offset: usize, src: &[u8]) -> Result<usize, IOMemError> {
-
         // currently we do not allow extending the buffer here
         let remaining_capacity = self.buf.capacity() - offset;
         let cnt = cmp::min(remaining_capacity, src.len());
 
         // copy the slice
-        self.buf[offset..offset+cnt].copy_from_slice(&src[0..cnt]);
+        self.buf[offset..offset + cnt].copy_from_slice(&src[0..cnt]);
 
         Ok(cnt)
     }
 
     /// copy data raw data of size `len` into the buffer at offset `offset`
-    pub fn copy_in(&mut self, src: &[u8]) -> Result<usize, IOMemError>{
+    pub fn copy_in(&mut self, src: &[u8]) -> Result<usize, IOMemError> {
         self.copy_in_at(self.buf.len(), src)
     }
 
     /// copy data out of the buffer starting at a given offset upto a reuqested length
-    pub fn copy_out_at(&self, offset : usize, dst: & mut [u8]) -> Result<usize, IOMemError> {
+    pub fn copy_out_at(&self, offset: usize, dst: &mut [u8]) -> Result<usize, IOMemError> {
         // of the offset is outside of the length of the vector then we
         if offset >= self.buf.len() {
-            return Ok(0)
+            return Ok(0);
         }
 
         let cnt = cmp::min(self.buf.len() - offset, dst.len());
@@ -180,13 +172,11 @@ impl IOBuf {
 //     // }
 // }
 
-
 /*
  * =================================================================================================
  * IOBuf Pool
  * =================================================================================================
  */
-
 
 /// provides a pool of buffers with the size and for the same the device
 pub struct IOBufPool {
@@ -195,14 +185,11 @@ pub struct IOBufPool {
     /// the allocator used for new buffers
     allocator: IOMemAllocator,
     /// the allocation layout of hte buffers
-    layout: Layout
+    layout: Layout,
 }
 
-
 impl IOBufPool {
-
-    pub fn new(len : usize, align: usize) -> Result<IOBufPool,IOMemError> {
-
+    pub fn new(len: usize, align: usize) -> Result<IOBufPool, IOMemError> {
         let layout = Layout::from_size_align(len, align).expect("Layout was invalid.");
 
         let allocator = IOMemAllocator::new(layout);
@@ -210,22 +197,21 @@ impl IOBufPool {
         Ok(IOBufPool {
             pool: vec![],
             allocator: allocator.unwrap(),
-            layout: layout
+            layout: layout,
         })
     }
 
     pub fn get_buf(&mut self) -> Result<IOBuf, IOMemError> {
         match self.pool.pop() {
-            Some (x) => Ok(x),
-            None     => IOBuf::new(self.layout)
+            Some(x) => Ok(x),
+            None => IOBuf::new(self.layout),
         }
     }
 
-    pub fn put_buf(&mut self, buf : IOBuf) {
+    pub fn put_buf(&mut self, buf: IOBuf) {
         self.pool.push(buf)
     }
 }
-
 
 /*
  * =================================================================================================
@@ -233,17 +219,16 @@ impl IOBufPool {
  * =================================================================================================
  */
 
-
 /// represents an IO buffer
 pub struct IOBufChain {
     /// the IOBuf fragments
-    bufs: Vec<IOBuf>
+    bufs: Vec<IOBuf>,
 }
 
 impl IOBufChain {
     pub fn new(len: usize) -> Result<IOBufChain, IOMemError> {
-        Ok( IOBufChain{
-            bufs: Vec::with_capacity(len)
+        Ok(IOBufChain {
+            bufs: Vec::with_capacity(len),
         })
     }
 
