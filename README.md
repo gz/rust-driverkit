@@ -4,6 +4,19 @@
 
 Framework for writing and simplifying testing of device drivers. This is work in progress.
 
+## License
+
+See LICENSE files.
+
+## Authors
+
+Gerd Zellweger, Reto Achermann
+
+## Components
+
+ * iomem: managing memory for buffers used by devices such as network cards, disks, etc.
+ * devq: a queue interface to talk to hardware descriptor queues.
+
 ## Usage
 
 Using the DevMem type on Linux will require Hugepages:
