@@ -7,6 +7,9 @@ use custom_error_core::custom_error;
 use std::cmp;
 
 
+extern crate alloc;
+
+
 
 // custom error for the IOMemory
 custom_error! {pub IOMemError
@@ -28,9 +31,7 @@ pub struct IOMemAllocator {
 
 /// IOMemAllocator Implementation
 impl IOMemAllocator {
-    fn new(blocksize: usize, alignment: usize) -> Result<IOMemAllocator,IOMemError> {
-        let layout = Layout::from_size_align(blocksize, alignment).expect("Layout was invalid.");
-
+    fn new(layout: Layout) -> Result<IOMemAllocator,IOMemError> {
         Ok(IOMemAllocator {
             layout: layout
         })
@@ -51,7 +52,7 @@ unsafe impl Allocator for IOMemAllocator {
         unsafe {
             // do the actual allocation
             // TODO: refer to the OS allocator
-            let ptr : *mut u8 = std::alloc::alloc_zeroed(alloc_layout);
+            let ptr : *mut u8 = alloc::alloc::alloc_zeroed(alloc_layout);
             if ptr.is_null() {
                 return Err(AllocError)
             }
@@ -69,7 +70,7 @@ unsafe impl Allocator for IOMemAllocator {
         // XXX: check the layout matches the allocator here?
         let buf = ptr.as_ptr();
         // TODO: refer to the OS allocator
-        std::alloc::dealloc(buf, layout);
+        alloc::alloc::dealloc(buf, layout);
     }
 }
 
@@ -79,6 +80,7 @@ unsafe impl Allocator for IOMemAllocator {
  * IOBuf
  * =================================================================================================
  */
+
 
 /// TODO: move this somewhere else
 const KERNEL_BASE : u64 = 0xffff000000000000;
@@ -92,13 +94,13 @@ pub struct IOBuf {
 }
 
 impl IOBuf {
-    fn new(len: usize, align: usize) -> Result<IOBuf,IOMemError> {
+    pub fn new(layout: Layout) -> Result<IOBuf,IOMemError> {
         // get the aligned buffer length
 
         // get the layouf for the allocation
-        let allocator = IOMemAllocator::new(len, align);
+        let allocator = IOMemAllocator::new(layout);
 
-        let buf : Vec<u8, IOMemAllocator> = Vec::with_capacity_in(len, allocator.unwrap());
+        let buf : Vec<u8, IOMemAllocator> = Vec::with_capacity_in(layout.size(), allocator.unwrap());
 
         // for now just using the phys addr... TODO: setup with
         let ioaddr = buf.as_ptr() as u64 - KERNEL_BASE;
@@ -110,12 +112,12 @@ impl IOBuf {
     }
 
     /// clears the buffer contents
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.buf.clear();
     }
 
     /// copy data in at a given offset
-    fn copy_in_at(&mut self, offset: usize, src: &[u8]) -> Result<usize, IOMemError> {
+    pub fn copy_in_at(&mut self, offset: usize, src: &[u8]) -> Result<usize, IOMemError> {
 
         // currently we do not allow extending the buffer here
         let remaining_capacity = self.buf.capacity() - offset;
@@ -128,12 +130,12 @@ impl IOBuf {
     }
 
     /// copy data raw data of size `len` into the buffer at offset `offset`
-    fn copy_in(&mut self, src: &[u8]) -> Result<usize, IOMemError>{
+    pub fn copy_in(&mut self, src: &[u8]) -> Result<usize, IOMemError>{
         self.copy_in_at(self.buf.len(), src)
     }
 
     /// copy data out of the buffer starting at a given offset upto a reuqested length
-    fn copy_out_at(&self, offset : usize, dst: & mut [u8]) -> Result<usize, IOMemError> {
+    pub fn copy_out_at(&self, offset : usize, dst: & mut [u8]) -> Result<usize, IOMemError> {
         // of the offset is outside of the length of the vector then we
         if offset >= self.buf.len() {
             return Ok(0)
@@ -146,17 +148,17 @@ impl IOBuf {
     }
 
     /// copy the data from 0 to len into the dst vector
-    fn copy_out(&self, dst: &mut [u8]) -> Result<usize, IOMemError> {
+    pub fn copy_out(&self, dst: &mut [u8]) -> Result<usize, IOMemError> {
         self.copy_out_at(0, dst)
     }
 
     /// get a u8 array from the backing buffer
-    fn as_slice(&self) -> Result<&[u8], IOMemError> {
+    pub fn as_slice(&self) -> Result<&[u8], IOMemError> {
         Ok(self.buf.as_slice())
     }
 
     /// get a mutable u8 array from the backing buffer
-    fn as_mut_slice(&mut self) -> Result<&mut [u8], IOMemError> {
+    pub fn as_mut_slice(&mut self) -> Result<&mut [u8], IOMemError> {
         Ok(self.buf.as_mut_slice())
     }
 }
@@ -177,3 +179,86 @@ impl IOBuf {
 //     //     IOAddr::from(self.ioaddr)
 //     // }
 // }
+
+
+/*
+ * =================================================================================================
+ * IOBuf Pool
+ * =================================================================================================
+ */
+
+
+/// provides a pool of buffers with the size and for the same the device
+pub struct IOBufPool {
+    /// pool of buffers
+    pool: Vec<IOBuf>,
+    /// the allocator used for new buffers
+    allocator: IOMemAllocator,
+    /// the allocation layout of hte buffers
+    layout: Layout
+}
+
+
+impl IOBufPool {
+
+    pub fn new(len : usize, align: usize) -> Result<IOBufPool,IOMemError> {
+
+        let layout = Layout::from_size_align(len, align).expect("Layout was invalid.");
+
+        let allocator = IOMemAllocator::new(layout);
+
+        Ok(IOBufPool {
+            pool: vec![],
+            allocator: allocator.unwrap(),
+            layout: layout
+        })
+    }
+
+    pub fn get_buf(&mut self) -> Result<IOBuf, IOMemError> {
+        match self.pool.pop() {
+            Some (x) => Ok(x),
+            None     => IOBuf::new(self.layout)
+        }
+    }
+
+    pub fn put_buf(&mut self, buf : IOBuf) {
+        self.pool.push(buf)
+    }
+}
+
+
+/*
+ * =================================================================================================
+ * IOBuf Pool
+ * =================================================================================================
+ */
+
+
+/// represents an IO buffer
+pub struct IOBufChain {
+    /// the IOBuf fragments
+    bufs: Vec<IOBuf>
+}
+
+impl IOBufChain {
+    pub fn new(len: usize) -> Result<IOBufChain, IOMemError> {
+        Ok( IOBufChain{
+            bufs: Vec::with_capacity(len)
+        })
+    }
+
+    /// appending a buffer to the chain
+    pub fn append(&mut self, buf: IOBuf) {
+        self.bufs.push(buf)
+    }
+
+    /// gets the buffers of this chain as a slice
+    pub fn as_slice(&self) -> Result<&[IOBuf], IOMemError> {
+        Ok(self.bufs.as_slice())
+    }
+
+    /// gets the buffers of this chain as a mutable slice
+    pub fn as_mut_slice(&mut self) -> Result<&mut [IOBuf], IOMemError> {
+        Ok(self.bufs.as_mut_slice())
+    }
+}
