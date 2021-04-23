@@ -35,6 +35,7 @@ use core::ops::{BitAnd, BitOr, Not};
 #[macro_use]
 pub mod bitops;
 pub mod iomem;
+pub mod devq;
 #[cfg(unix)]
 pub mod timedops;
 
