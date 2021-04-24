@@ -1,11 +1,34 @@
-use custom_error_core::custom_error;
+use alloc::vec::Vec;
+
+use custom_error::custom_error;
 
 pub struct PktInfo {
     pub qsidx: usize,
+    pub flags: u32,
+
+    /// bus_dma_segment_t
+    /// A machine-dependent type that describes individual	DMA segments.
+    /// It	contains the following fields:
+    ///
+    /// bus_addr_t	     ds_addr;
+    /// bus_size_t	     ds_len;
+    ///
+    /// The ds_addr field contains	the device visible address of the DMA
+    /// segment, and ds_len contains the length of	the DMA	segment.  Al-
+    /// though the	DMA segments returned by a mapping call	will adhere to
+    /// all restrictions necessary	for a successful DMA operation,	some
+    /// conversion	(e.g. a	conversion from	host byte order	to the de-
+    /// vice's byte order)	is almost always required when presenting seg-
+    /// ment information to the device.
+    pub segments: Vec<(u64, u32)>,
 }
 
 impl PktInfo {
-    pub fn segments(&self) -> usize {
+    pub fn nsegs(&self) -> usize {
+        self.segments.len()
+    }
+
+    pub fn pidx(&self) -> usize {
         0
     }
 }

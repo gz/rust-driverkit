@@ -1,5 +1,5 @@
-use custom_error_core::custom_error;
-use std::vec::Vec;
+use alloc::vec::Vec;
+use custom_error::custom_error;
 
 // library includes
 use crate::iomem::IOBufChain;
