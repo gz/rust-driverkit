@@ -8,6 +8,8 @@
 #[cfg(unix)]
 extern crate std;
 
+extern crate alloc;
+
 #[cfg(unix)]
 extern crate byteorder;
 #[cfg(unix)]

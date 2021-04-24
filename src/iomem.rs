@@ -1,12 +1,11 @@
-use custom_error_core::custom_error;
-use std::alloc::AllocError;
-use std::alloc::{Allocator, Layout};
-use std::ptr::NonNull;
-use std::vec::Vec;
+use alloc::alloc::AllocError;
+use alloc::alloc::{Allocator, Layout};
+use alloc::vec;
+use alloc::vec::Vec;
+use core::cmp;
+use core::ptr::NonNull;
 
-use std::cmp;
-
-extern crate alloc;
+use custom_error::custom_error;
 
 // custom error for the IOMemory
 custom_error! {pub IOMemError

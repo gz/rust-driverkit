@@ -1,7 +1,7 @@
 [package]
 name = "driverkit"
 version = "0.4.0"
-authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
+authors = ["Gerd Zellweger <mail@gerdzellweger.com>", "Reto Achermann <achreto@gmail.com>"]
 readme = "README.md"
 description = "A driver framework defining standard types and interfaces for writing device drivers."
 keywords = ["driver", "os", "framework"]
@@ -16,10 +16,10 @@ byteorder = "0.5"
 matches = "0.1.8"
 
 [dependencies]
-x86 = "0.37"
+x86 = "0.38"
 log = "0.4"
 bit_field = "0.9"
-custom_error_core = "1.8"
+custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 
 [[bin]]
 name = "testdrive"
