@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::collections::vec_deque::VecDeque;
 use custom_error::custom_error;
 
 // library includes
@@ -12,17 +12,20 @@ custom_error! {pub DevQueueError
 
 /// A device queue interface supporting enqueue/dequeueu
 pub trait DevQueue {
-    /**
-     * Enqueues one or multiple IOBufChains into the queue that implements this trait.
-     * This updates the descriptors of the queue accordingly, but the buffers may not yet
-     * be made available for the device, and a flush() is required afterwards.
-     *
-     * The function returns buffer chains that have not been equeued to to limited available
-     * space on the queue.
-     *
-     *  - bufs: a vector of buffers chains to be enqueued on the card
-     */
-    fn enqueue(&mut self, bufs: Vec<IOBufChain>) -> Result<Vec<IOBufChain>, DevQueueError>;
+    /// Enqueues one or multiple IOBufChains into the queue that implements this
+    /// trait. This updates the descriptors of the queue accordingly, but the
+    /// buffers may not yet be made available for the device, and a flush() is
+    /// required afterwards.
+    ///
+    /// The function returns buffer chains that have not been equeued (e.g., due
+    /// to limited available space on the queue).
+    ///
+    /// # Arguments
+    /// - bufs: a vector of buffers chains to be enqueued on the card
+    fn enqueue(
+        &mut self,
+        bufs: VecDeque<IOBufChain>,
+    ) -> Result<VecDeque<IOBufChain>, DevQueueError>;
 
     /**
      * notifies the device that there have been new descriptors added to the queue
@@ -45,7 +48,7 @@ pub trait DevQueue {
      *
      *  - cnt: the maximum amount of buffers to process
      */
-    fn dequeue(&mut self, cnt: usize) -> Result<Vec<IOBufChain>, DevQueueError>;
+    fn dequeue(&mut self, cnt: usize) -> Result<VecDeque<IOBufChain>, DevQueueError>;
 
     /**
      * Checks if there are buffers ready to be dequeued and returns the count of processed

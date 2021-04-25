@@ -2,6 +2,9 @@ use alloc::vec::Vec;
 
 use custom_error::custom_error;
 
+pub struct RxdInfo {}
+
+/*
 pub struct PktInfo {
     pub qsidx: usize,
     pub flags: u32,
@@ -33,7 +36,6 @@ impl PktInfo {
     }
 }
 
-pub struct RxdInfo {}
 
 custom_error! {pub TxError
     Unknown = "Unknown error",
@@ -61,3 +63,4 @@ pub trait TxRx {
 
     fn rxd_pkt_get(&mut self, ri: RxdInfo) -> Result<(), RxError>;
 }
+*/
