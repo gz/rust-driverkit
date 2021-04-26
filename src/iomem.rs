@@ -1,7 +1,8 @@
-use alloc::alloc::AllocError;
 use alloc::alloc::{Allocator, Layout};
+use alloc::collections::vec_deque::VecDeque;
 use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{alloc::AllocError, collections::TryReserveError};
 use core::cmp;
 use core::ptr::NonNull;
 
@@ -12,6 +13,12 @@ use x86::current::paging::{PAddr, VAddr};
 custom_error! {pub IOMemError
     OutOfMemory = "reached out of memory",
     NotYetImplemented = "feature not yet implemented"
+}
+
+impl From<TryReserveError> for IOMemError {
+    fn from(e: TryReserveError) -> Self {
+        IOMemError::OutOfMemory
+    }
 }
 
 ///  TODO: get rid of this:
@@ -101,6 +108,7 @@ impl IOBuf {
         // Currently we do not allow extending the buffer:
         let remaining_capacity = self.buf.capacity() - offset;
         let cnt = cmp::min(remaining_capacity, src.len());
+        self.buf.resize(offset + cnt, 0);
 
         // copy the slice
         self.buf[offset..offset + cnt].copy_from_slice(&src[0..cnt]);
@@ -108,9 +116,9 @@ impl IOBuf {
         Ok(cnt)
     }
 
-    /// Copy raw data of size `len` into the buffer at offset `offset`.
+    /// Copy raw data of size `len` into the buffer.
     pub fn copy_in(&mut self, src: &[u8]) -> Result<usize, IOMemError> {
-        self.copy_in_at(self.buf.len(), src)
+        self.copy_in_at(0, src)
     }
 
     /// Copy data out of the IOBuf, starting at a given `offset` into `dst`.
@@ -193,31 +201,38 @@ impl IOBufPool {
 }
 /// An IO buffer.
 pub struct IOBufChain {
+    /// Corresponding queue ID.
+    pub qsidx: usize,
+
     /// XXX
     pub pidx: usize,
 
-    /// Corresponding queue ID.
-    pub qsidx: usize,
+    /// Set by `enqueue`
+    pub ipi_new_pidx: usize,
 
     /// Flags (to be used by device driver).
     pub flags: u32,
 
     /// The `IOBuf` fragments
-    pub segments: Vec<IOBuf>,
+    pub segments: VecDeque<IOBuf>,
 }
 
 impl IOBufChain {
     pub fn new(
-        pidx: usize,
         qsidx: usize,
+        pidx: usize,
         flags: u32,
         len: usize,
     ) -> Result<IOBufChain, IOMemError> {
+        let mut vd = VecDeque::new();
+        vd.try_reserve_exact(len)?;
+
         Ok(IOBufChain {
             pidx,
             qsidx,
             flags,
-            segments: Vec::with_capacity(len),
+            ipi_new_pidx: 0,
+            segments: vd,
         })
     }
 }

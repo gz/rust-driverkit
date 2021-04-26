@@ -22,16 +22,13 @@ pub trait DevQueue {
     ///
     /// # Arguments
     /// - bufs: a vector of buffers chains to be enqueued on the card
-    fn enqueue(
-        &mut self,
-        bufs: VecDeque<IOBufChain>,
-    ) -> Result<VecDeque<IOBufChain>, DevQueueError>;
+    fn enqueue(&mut self, bufs: IOBufChain) -> Result<IOBufChain, DevQueueError>;
 
     /**
      * notifies the device that there have been new descriptors added to the queue
      * returns the number of buffers that have been handed over to the device
      */
-    fn flush(&mut self) -> Result<usize, DevQueueError>;
+    fn flush(&mut self, txqid: usize, pidx: usize) -> Result<usize, DevQueueError>;
 
     /**
      * Checks if new buffers can be enqueued and returns the number of available slots.
