@@ -1,4 +1,3 @@
-use alloc::collections::vec_deque::VecDeque;
 use custom_error::custom_error;
 
 // library includes
