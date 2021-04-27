@@ -7,7 +7,7 @@ use core::cmp;
 use core::ptr::NonNull;
 
 use custom_error::custom_error;
-use x86::current::paging::{PAddr, VAddr};
+use x86::current::paging::{PAddr, VAddr, IOAddr};
 
 // custom error for the IOMemory
 custom_error! {pub IOMemError
@@ -32,6 +32,10 @@ pub trait DmaObject {
 
     fn vaddr(&self) -> VAddr {
         VAddr::from(&*self as *const Self as *const () as usize)
+    }
+
+    fn ioaddr(&self) -> IOAddr {
+        IOAddr::from(self.paddr())
     }
 }
 
