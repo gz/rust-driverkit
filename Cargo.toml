@@ -16,7 +16,7 @@ byteorder = "0.5"
 matches = "0.1.8"
 
 [dependencies]
-x86 = "0.38"
+x86 = "0.39"
 log = "0.4"
 bit_field = "0.9"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
