@@ -86,12 +86,23 @@ impl smoltcp::phy::Device for DevQueuePhy {
      * obtains/allocates an empty end buffer
      */
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
-        // get an empty TX token from the pool
-        let iobuf = IOBufChain::new(0, 0, 0, 1);
-        iobuf.append(self.pool.get_buf())
-        let tx_token = TxPacket<'a>(iobuf, self.tx_q, self.pool);
+        // see if there is something to dequeue
+        let numdeq =
+            match self.rx_q.can_dequeue(false) {
+                Ok(num) => num,
+                Err(_)  => 0
+            };
 
-        Some(tx_token)
+        let packet = if numdeq > 0 {
+            self.rx_q.dequeue(1)
+            } else {
+                let iobuf = IOBufChain::new(0, 0, 0, 1);
+                iobuf.append(self.pool.get_buf());
+                iobuf
+            }
+
+        // get an empty TX token from the pool
+        Some(TxPacket<'a>(packet, self.tx_q, self.pool))
     }
 
     /**
