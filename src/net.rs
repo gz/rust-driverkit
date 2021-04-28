@@ -1,8 +1,191 @@
-use alloc::vec::Vec;
-
 use custom_error::custom_error;
 
-pub struct RxdInfo {}
+extern crate smoltcp;
+
+
+
+// library includes
+use crate::devq::DevQueue;
+use crate::iomem::{IOBufChain, IOBufPool};
+
+// smoltcp includes
+use smoltcp::phy::{self, Device, DeviceCapabilities};
+use smoltcp::time::Instant;
+use smoltcp::Result;
+
+/// define the maximum packet size supported
+const MAX_PACKET_SZ: usize = 2048;
+
+// custom error functions
+custom_error! {pub DevQueuePhyError
+    PhyFailure = "Unknown phy failer"
+}
+
+/// a smoltcp phy implementation wrapping a DevQueue
+struct DevQueuePhy {
+    rx_q: DevQueue,
+    tx_q: DevQueue,
+    pool: IOBufPool,
+}
+
+impl DevQueuePhy {
+    fn new(rx_q: DevQueue, tx_q: DevQueue) -> core::result::Result<DevQueuePhy, DevQueuePhyError> {
+        let pool = IOBufPool::new(MAX_PACKET_SZ, MAX_PACKET_SZ);
+        match pool {
+            Ok(p) => Ok(DevQueuePhy {
+                rx_q: rx_q,
+                tx_q: tx_q,
+                pool: p,
+            }),
+            Err(p) => Err(PhyFailure)
+        }
+    }
+}
+
+impl smoltcp::phy::Device for DevQueuePhy {
+
+    type RxToken = RxPacket<'a>;
+    type TxToken = TxPacket<'a>;
+
+   /**
+     * obtains a receive buffer along a side a send buffer for replies (e.g., ping...)
+     */
+    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+        // check if there is any packet available in the receive queue
+        let numdeq =
+            match self.rx_q.can_dequeue(false) {
+                Ok(num) => num,
+                Err(_)  => return None
+            };
+
+        if  numdeq > 0 {
+            // get the packet, for now just one
+            let packet = self.rx_q.dequeue(1);
+
+            // enqueue another buffer for future receives, TODO: maybe need to enqueue more than one
+            let bufs = IOBufChain::new(0, 0, 0, 1);
+            bufs.append(self.pool.get_buf())
+            self.rx_q.enqueue(bufs)
+
+            // construct the RX token
+            let rx_token = RxPacket<'a>(packet, self.rx_q, self.pool);
+
+            // get an empty TX token from the pool...
+            // TODO: make sure we can actually send something!
+            let iobuf = IOBufChain::new(0, 0, 0, 1);
+            iobuf.append(self.pool.get_buf())
+            let tx_token = TxPacket<'a>(iobuf, self.tx_q, self.pool);
+
+            Some(rx_token, tx_token)
+        } else {
+            None
+        }
+    }
+
+    /**
+     * obtains/allocates an empty end buffer
+     */
+    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        // get an empty TX token from the pool
+        let iobuf = IOBufChain::new(0, 0, 0, 1);
+        iobuf.append(self.pool.get_buf())
+        let tx_token = TxPacket<'a>(iobuf, self.tx_q, self.pool);
+
+        Some(tx_token)
+    }
+
+    /**
+     * the device capabilities (e.g., checksum offloading etc...)
+     */
+    fn capabilities(&self) -> DeviceCapabilities {
+        let mut caps = DeviceCapabilities::default();
+        caps.max_transmission_unit = 1536;
+        caps.max_burst_size = Some(1);
+        caps
+    }
+}
+
+
+/// smolnet RxToken
+
+/// smolnet TxToken
+struct RxPacket<'a> {
+    iobuf: IOBufChain,
+    txq : DevQueue,
+    pool: IOBufPool
+}
+
+impl RxPacket<'a> {
+    fn new(iobuf: IOBufChain, txq : DevQueue, pool: IOBufPool) -> RxPacket<'a> {
+        RxPacket<'a> {
+            iobuf: iobuf,
+            txq : txq,
+            pool: pool
+        }
+    }
+}
+
+impl<'a> phy::RxToken for RxPacket<'a> {
+    fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> Result<R>
+        where F: FnOnce(&mut [u8]) -> Result<R>
+    {
+        // XXX: not sure here if the buffer actually needs to be copied here...
+        let result = f(&mut self.iobuf);
+        //println!("rx called");
+
+        // we can drop the IOBufChain here.
+        self.pool.put_buf(self.iobuf);
+        result
+    }
+}
+
+
+/// smolnet TxToken
+struct TxPacket<'a> {
+    iobuf: IOBufChain,
+    txq : DevQueue,
+    pool: IOBufPool
+}
+
+impl TxPacket<'a> {
+    fn new(iobuf: IOBufChain, txq : DevQueue, pool: IOBufPool) -> TxPacket<'a> {
+        TxPacket<'a> {
+            iobuf: iobuf,
+            txq : txq,
+            pool: pool
+        }
+    }
+}
+
+/// implements the TxToken trait for the TxPacket
+impl<'a> phy::TxToken for TxPacket<'a> {
+    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> Result<R>
+        where F: FnOnce(&mut [u8]) -> Result<R>
+    {
+        println!("tx called {}", len);
+
+        // let the network stack write into the packet
+        let result = f(&mut self.iobuf[0..len]);
+
+        // TODO: send packet out, this passes ownership of the IOBufChain to the device
+        // XXX: can we guarantee that there is space in the queue?
+        self.txq.enqueue(self.iobuf);
+        self.txq.flush();
+
+        // references dropped...
+        result
+    }
+}
+
+/// Drop trait to return a dropped Tx token back to the pool
+impl<'a> Drop for TxPacket<'a> {
+    /// gets called when the TxPacket gets dropped in the stack
+    fn drop(&mut self) {
+        // TODO: return the buffer back to the pool.
+        // self.pool.put_buf(self.iobuf);
+    }
+}
+
 
 /*
 pub struct PktInfo {
@@ -63,4 +246,5 @@ pub trait TxRx {
 
     fn rxd_pkt_get(&mut self, ri: RxdInfo) -> Result<(), RxError>;
 }
+
 */
