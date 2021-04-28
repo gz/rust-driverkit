@@ -13,32 +13,46 @@ custom_error! {pub DevQueueError
 
 /// A device queue interface supporting enqueue/dequeueu
 pub trait DevQueue {
-    /// Enqueues an IOBufChain into the queue that implements this
-    /// trait. This updates the descriptors of the queue accordingly, but the
-    /// buffers may not yet be made available for the device, and a flush() is
-    /// required afterwards.
+    /// Enqueues an IOBufChain into the queue that implements this trait. This
+    /// updates the descriptors of the queue accordingly, but the buffers may
+    /// not yet be made available for the device, and a flush() is required
+    /// afterwards.
     ///
-    /// The function returns the buffer chain if there was not enough space to enqueue all
-    /// buffers in this chain. (e.g., due to limited available space on the queue).
+    /// The function returns the buffer chain if there was not enough space to
+    /// enqueue all buffers in this chain. (e.g., due to limited available space
+    /// on the queue).
     ///
     /// # Arguments
     /// - bufs: a vector of buffers chains to be enqueued on the card
+    ///
+    /// # Return
+    /// - On success returns nothing
+    /// - In case there was no space left on the device ring, it may return
+    ///   either the entire IOBufChain, or a partially dequeued IOBufChain back
+    ///   to the client
     fn enqueue(&mut self, bufs: IOBufChain) -> Result<(), IOBufChain>;
 
-    /**
-     * notifies the device that there have been new descriptors added to the queue
-     * returns the number of buffers that have been handed over to the device
-     */
-    fn flush(&mut self, txqid: usize, pidx: usize) -> Result<usize, DevQueueError>;
+    /// Notifies the device that there have been new descriptors added to the
+    /// queue.
+    ///
+    /// # Returns
+    /// Returns the number of buffers that have been handed over to the device
+    /// (TODO: meaning # of IOBufChain's??)
+    fn flush(&mut self) -> Result<usize, DevQueueError>;
 
-    /**
-     * Checks if new buffers can be enqueued and returns the number of available slots.
-     * The returned count should reflect the actual available slots if the `exact` parameter
-     * is true, otherwise non zero indicates there is at least one slot available.
-     *
-     *  - exact: flag indicating whether the exact amount should be calculated
-     */
-    fn can_enqueue(&self, exact: bool) -> Result<usize, DevQueueError>;
+    /// Checks if new buffers can be enqueued and returns the number of
+    /// available slots. The returned count should reflect the actual available
+    /// slots if the `exact` parameter is true, otherwise non zero indicates
+    /// there is at least one slot available.
+    ///
+    /// # Arguments
+    ///  - `how_many_seg`: Indicate how many segments (of one or multiple
+    ///    IOBufChain) the client wants to enqueue.
+    ///
+    /// # Returns
+    ///  - true if we can enqueue that many segemnts in the device ring
+    ///  - false if we don't have enough space in the device ring
+    fn can_enqueue(&self, how_many_seg: usize) -> bool;
 
     /**
      * dequeues a previously enqueued buffer chain from the queue. The buffers are returned

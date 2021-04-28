@@ -4,11 +4,11 @@ use alloc::vec;
 use alloc::vec::Vec;
 use alloc::{alloc::AllocError, collections::TryReserveError};
 use core::cmp;
+use core::ops::Index;
 use core::ptr::NonNull;
-use core::ops::{Index};
 
 use custom_error::custom_error;
-use x86::current::paging::{PAddr, VAddr, IOAddr};
+use x86::current::paging::{IOAddr, PAddr, VAddr};
 
 // custom error for the IOMemory
 custom_error! {pub IOMemError
@@ -88,6 +88,7 @@ unsafe impl Allocator for IOMemAllocator {
     }
 }
 
+#[derive(Debug)]
 /// Represents an IO buffer (data handed to/from device).
 pub struct IOBuf {
     buf: Vec<u8, IOMemAllocator>,
@@ -216,17 +217,10 @@ impl IOBufPool {
         self.pool.push(buf)
     }
 }
+
+#[derive(Debug)]
 /// An IO buffer.
 pub struct IOBufChain {
-    /// Corresponding queue ID.
-    pub qsidx: usize,
-
-    /// XXX
-    pub pidx: usize,
-
-    /// Set by `enqueue`
-    pub ipi_new_pidx: usize,
-
     /// Flags (to be used by device driver).
     pub flags: u32,
 
@@ -235,25 +229,17 @@ pub struct IOBufChain {
 }
 
 impl IOBufChain {
-    pub fn new(
-        qsidx: usize,
-        pidx: usize,
-        flags: u32,
-        len: usize,
-    ) -> Result<IOBufChain, IOMemError> {
+    pub fn new(flags: u32, len: usize) -> Result<IOBufChain, IOMemError> {
         let mut vd = VecDeque::new();
         vd.try_reserve_exact(len)?;
 
         Ok(IOBufChain {
-            pidx,
-            qsidx,
             flags,
-            ipi_new_pidx: 0,
             segments: vd,
         })
     }
 
-    pub fn append(&mut self, buf :IOBuf) {
+    pub fn append(&mut self, buf: IOBuf) {
         self.segments.push_back(buf);
     }
 }
@@ -270,7 +256,7 @@ impl Index<usize> for IOBufChain {
         for i in 0..nseg {
             let seglen = self.segments[i].len();
             if index < seglen {
-                return &self.segments[i][cidx]
+                return &self.segments[i][cidx];
             }
             cidx -= seglen;
         }

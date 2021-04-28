@@ -88,7 +88,7 @@ impl smoltcp::phy::Device for DevQueuePhy {
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
         // see if there is something to dequeue
         let numdeq =
-            match self.rx_q.can_dequeue(false) {
+            match self.tx_q.can_dequeue(false) {
                 Ok(num) => num,
                 Err(_)  => 0
             };
