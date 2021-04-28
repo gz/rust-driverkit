@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 use alloc::{alloc::AllocError, collections::TryReserveError};
 use core::cmp;
 use core::ptr::NonNull;
+use core::ops::{Index};
 
 use custom_error::custom_error;
 use x86::current::paging::{PAddr, VAddr, IOAddr};
@@ -35,7 +36,7 @@ pub trait DmaObject {
     }
 
     fn ioaddr(&self) -> IOAddr {
-        IOAddr::from(self.paddr())
+        IOAddr::from(self.paddr().as_u64())
     }
 }
 
@@ -158,6 +159,18 @@ impl IOBuf {
     }
 }
 
+/// implementation for the index operator [] on IOBuf
+impl Index<usize> for IOBuf {
+    /// The returned type after indexing.
+    type Output = u8;
+
+    /// Performs the indexing (`container[index]`) operation.
+    #[inline]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.buf[index]
+    }
+}
+
 impl DmaObject for IOBuf {
     /// Address of the IOBuf in main memory.
     fn paddr(&self) -> PAddr {
@@ -238,5 +251,30 @@ impl IOBufChain {
             ipi_new_pidx: 0,
             segments: vd,
         })
+    }
+
+    pub fn append(&mut self, buf :IOBuf) {
+        self.segments.push_back(buf);
+    }
+}
+
+/// implementation for the index operator [] on IOBuf
+impl Index<usize> for IOBufChain {
+    /// The returned type after indexing.
+    type Output = u8;
+
+    /// Performs the indexing (`container[index]`) operation.
+    fn index(&self, index: usize) -> &Self::Output {
+        let mut cidx = index;
+        let nseg = self.segments.len();
+        for i in 0..nseg {
+            let seglen = self.segments[i].len();
+            if index < seglen {
+                return &self.segments[i][cidx]
+            }
+            cidx -= seglen;
+        }
+        // error here?
+        &self.segments[0][0]
     }
 }
