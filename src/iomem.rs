@@ -101,7 +101,7 @@ impl IOBuf {
         let allocator = IOMemAllocator::new(layout);
         let buf: Vec<u8, IOMemAllocator> = Vec::with_capacity_in(layout.size(), allocator.unwrap());
 
-        Ok(IOBuf { buf: buf })
+        Ok(IOBuf { buf })
     }
 
     /// Removes all buffer contents.
