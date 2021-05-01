@@ -44,8 +44,8 @@ pub mod iomem;
 #[cfg(unix)]
 pub mod timedops;
 
-/// Interface definitions for network devices.
-//pub mod net;
+/// Definitions for network devices.
+pub mod net;
 
 #[cfg(target_os = "barrelfish")]
 mod barrelfish;

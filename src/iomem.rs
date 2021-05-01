@@ -104,6 +104,15 @@ impl IOBuf {
         Ok(IOBuf { buf })
     }
 
+    /// Fill buffer with as many 0 as capacity allows.
+    pub fn expand(&mut self) {
+        self.buf.resize(self.buf.capacity() - self.buf.len(), 0);
+    }
+
+    pub fn truncate(&mut self, new_len: usize) {
+        self.buf.truncate(new_len)
+    }
+
     /// Removes all buffer contents.
     pub fn clear(&mut self) {
         self.buf.clear();
@@ -146,13 +155,13 @@ impl IOBuf {
     }
 
     /// Get a IOBuf contents as slice.
-    pub fn as_slice(&self) -> Result<&[u8], IOMemError> {
-        Ok(self.buf.as_slice())
+    pub fn as_slice(&self) -> &[u8] {
+        self.buf.as_slice()
     }
 
     /// Get a IOBuf contents as mutable slice.
-    pub fn as_mut_slice(&mut self) -> Result<&mut [u8], IOMemError> {
-        Ok(self.buf.as_mut_slice())
+    pub fn as_mut_slice(&mut self) -> &mut [u8] {
+        self.buf.as_mut_slice()
     }
 
     pub fn len(&self) -> usize {
@@ -221,8 +230,27 @@ impl IOBufPool {
 #[derive(Debug)]
 /// An IO buffer.
 pub struct IOBufChain {
+    /// Completion queue index (set by driver),
+    /// TODO: remove once no longer necessary?
+    cqidx: usize,
+
+    /// Check sum flags (set by driver on rx)
+    pub csum_flags: u32,
+
+    /// Checksum data (set by driver on rx)
+    pub csum_data: u32,
+
+    /// VLAN tag (set by device driver on rx)
+    pub vtag: Option<u32>,
+
     /// Flags (to be used by device driver).
     pub flags: u32,
+
+    /// Flow ID for RSS
+    pub rss_flow_id: Option<usize>,
+
+    /// RSS type
+    pub rss_type: u32,
 
     /// The `IOBuf` fragments
     pub segments: VecDeque<IOBuf>,
@@ -234,9 +262,52 @@ impl IOBufChain {
         vd.try_reserve_exact(len)?;
 
         Ok(IOBufChain {
+            cqidx: 0,
             flags,
+            csum_flags: 0,
+            csum_data: 0,
+            vtag: None,
+            rss_flow_id: None,
+            rss_type: 0,
             segments: vd,
         })
+    }
+
+    /// Set meta-data provided by the driver
+    pub fn set_meta_data(
+        &mut self,
+        total_len: usize,
+        segments: usize,
+        cqidx: usize,
+        rss_flow_id: Option<usize>,
+        rsstype: u32,
+    ) {
+        self.cqidx = cqidx;
+        self.rss_flow_id = rss_flow_id;
+        self.rss_type = rsstype;
+
+        // Truncate unused segments to zero
+        // count unused segments
+        let mut remaining_bytes = total_len;
+        let mut unused_segments = 0;
+        for seg in self.segments.iter_mut() {
+            if remaining_bytes == 0 {
+                seg.truncate(0); // unused segment
+                unused_segments += 1;
+            }
+            remaining_bytes -= seg.len();
+        }
+
+        assert_eq!(
+            segments,
+            self.segments.len() - unused_segments,
+            "#Segments match"
+        );
+        assert_eq!(
+            total_len,
+            self.segments.iter().map(|s| s.len()).sum(),
+            "total_len matches"
+        );
     }
 
     pub fn append(&mut self, buf: IOBuf) {
