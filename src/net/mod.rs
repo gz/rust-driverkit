@@ -1,17 +1,17 @@
 use custom_error::custom_error;
 
-extern crate smoltcp;
-
-
+pub mod csum;
+pub mod rss;
 
 // library includes
-use crate::devq::DevQueue;
-use crate::iomem::{IOBufChain, IOBufPool};
+//use crate::devq::DevQueue;
+//use crate::iomem::{IOBufChain, IOBufPool};
 
 // smoltcp includes
+/*
 use smoltcp::phy::{self, Device, DeviceCapabilities};
 use smoltcp::time::Instant;
-use smoltcp::Result;
+use smoltcp::Result;*/
 
 /// define the maximum packet size supported
 const MAX_PACKET_SZ: usize = 2048;
@@ -21,6 +21,7 @@ custom_error! {pub DevQueuePhyError
     PhyFailure = "Unknown phy failer"
 }
 
+/*
 /// a smoltcp phy implementation wrapping a DevQueue
 struct DevQueuePhy {
     rx_q: DevQueue,
@@ -198,7 +199,6 @@ impl<'a> Drop for TxPacket<'a> {
 }
 
 
-/*
 pub struct PktInfo {
     pub qsidx: usize,
     pub flags: u32,
