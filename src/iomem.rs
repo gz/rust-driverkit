@@ -17,7 +17,7 @@ custom_error! {pub IOMemError
 }
 
 impl From<TryReserveError> for IOMemError {
-    fn from(e: TryReserveError) -> Self {
+    fn from(_e: TryReserveError) -> Self {
         IOMemError::OutOfMemory
     }
 }
@@ -198,7 +198,7 @@ pub struct IOBufPool {
     /// Pool of buffers
     pool: Vec<IOBuf>,
     /// The allocator used for new buffers
-    allocator: IOMemAllocator,
+    _allocator: IOMemAllocator,
     /// The allocation layout of the buffers
     layout: Layout,
 }
@@ -210,7 +210,7 @@ impl IOBufPool {
 
         Ok(IOBufPool {
             pool: vec![],
-            allocator: allocator.unwrap(),
+            _allocator: allocator.unwrap(),
             layout: layout,
         })
     }
