@@ -7,6 +7,8 @@ use core::cmp;
 use core::ops::Index;
 use core::ptr::NonNull;
 
+use log::info;
+
 use custom_error::custom_error;
 use x86::current::paging::{IOAddr, PAddr, VAddr};
 
@@ -100,13 +102,16 @@ impl IOBuf {
         // get the layouf for the allocation
         let allocator = IOMemAllocator::new(layout);
         let buf: Vec<u8, IOMemAllocator> = Vec::with_capacity_in(layout.size(), allocator.unwrap());
-
-        Ok(IOBuf { buf })
+        let mut iobuf = IOBuf { buf };
+        // call expand here to make sure the buffer has the full size
+        iobuf.expand();
+        info!("IOBuf: new buffer of size {}!",iobuf.capacity());
+        Ok(iobuf)
     }
 
     /// Fill buffer with as many 0 as capacity allows.
     pub fn expand(&mut self) {
-        self.buf.resize(self.buf.capacity() - self.buf.len(), 0);
+        self.buf.resize(self.buf.capacity(), 0);
     }
 
     pub fn truncate(&mut self, new_len: usize) {
@@ -216,9 +221,12 @@ impl IOBufPool {
     }
 
     pub fn get_buf(&mut self) -> Result<IOBuf, IOMemError> {
-        match self.pool.pop() {
-            Some(x) => Ok(x),
-            None => IOBuf::new(self.layout),
+        if self.pool.len() > 0 {
+            let mut buf = self.pool.pop().expect("should have a buffer here");
+            buf.expand();
+            Ok(buf)
+        } else {
+            IOBuf::new(self.layout)
         }
     }
 
