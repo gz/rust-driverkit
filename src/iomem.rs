@@ -105,7 +105,7 @@ impl IOBuf {
         let mut iobuf = IOBuf { buf };
         // call expand here to make sure the buffer has the full size
         iobuf.expand();
-        info!("IOBuf: new buffer of size {}!",iobuf.capacity());
+        // info!("IOBuf: new buffer of size {}!",iobuf.capacity());
         Ok(iobuf)
     }
 
