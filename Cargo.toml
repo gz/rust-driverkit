@@ -1,6 +1,6 @@
 [package]
 name = "driverkit"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>", "Reto Achermann <achreto@gmail.com>", "Erika Hunhoff <hunhoff.erika@gmail.com>"]
 readme = "README.md"
 description = "A driver framework defining standard types and interfaces for writing device drivers."
@@ -18,7 +18,6 @@ matches = "0.1.8"
 [dependencies]
 x86 = "0.39"
 log = "0.4"
-bit_field = "0.10"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 
 [[bin]]

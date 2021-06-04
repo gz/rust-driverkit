@@ -121,7 +121,7 @@ mod tests {
             Err(e) => {
                 panic!("Can not allocate: {:?}", e);
             }
-            Ok(f) => (),
+            Ok(_f) => (),
         }
     }
 

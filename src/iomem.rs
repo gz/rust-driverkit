@@ -7,8 +7,6 @@ use core::cmp;
 use core::ops::Index;
 use core::ptr::NonNull;
 
-use log::info;
-
 use custom_error::custom_error;
 use x86::current::paging::{IOAddr, PAddr, VAddr};
 

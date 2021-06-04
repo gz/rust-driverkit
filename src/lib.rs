@@ -30,15 +30,8 @@ extern crate libbarrelfish;
 #[cfg_attr(unix, macro_use)]
 extern crate log;
 
-extern crate bit_field;
 extern crate x86;
 
-use core::fmt;
-use core::intrinsics::{volatile_load, volatile_store};
-use core::ops::{BitAnd, BitOr, Not};
-
-#[macro_use]
-pub mod bitops;
 pub mod devq;
 pub mod iomem;
 #[cfg(unix)]
@@ -113,49 +106,6 @@ pub trait DriverControl: Sized {
 
     fn state(&self) -> DriverState;
     fn set_state(&mut self, ds: DriverState);
-}
-
-#[repr(C, packed)]
-pub struct Volatile<T> {
-    value: T,
-}
-
-impl<T> Volatile<T>
-where
-    T: Copy + PartialEq + BitAnd<Output = T> + BitOr<Output = T> + Not<Output = T>,
-{
-    pub fn new() -> Self {
-        Volatile {
-            value: unsafe { core::mem::MaybeUninit::zeroed().assume_init() },
-        }
-    }
-
-    /// Create a volatile with an initial value.
-    pub fn with_value(value: T) -> Volatile<T> {
-        Volatile { value: value }
-    }
-
-    #[inline]
-    pub fn get(&self) -> T {
-        unsafe { volatile_load(&self.value) }
-    }
-
-    #[inline]
-    pub fn set(&mut self, value: T) {
-        unsafe { volatile_store(&self.value as *const T as *mut T, value) }
-    }
-}
-
-impl<T: fmt::Debug> fmt::Debug for Volatile<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        unsafe { write!(f, "{:?}", self.value) }
-    }
-}
-
-impl<T: fmt::Display> fmt::Display for Volatile<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        unsafe { write!(f, "{}", self.value) }
-    }
 }
 
 pub trait MsrInterface {
