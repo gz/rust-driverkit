@@ -40,50 +40,32 @@ pub trait DmaObject {
     }
 }
 
-/// Allocator that backs memory for IOBufs.
-pub struct IOMemAllocator {
-    /// Layout established for this allocator.
-    layout: Layout,
-}
+/// An allocator that (supposedly) backs memory accessible by devices.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DmaAllocator;
 
-/// IOMemAllocator Implementation
-impl IOMemAllocator {
-    fn new(layout: Layout) -> Result<IOMemAllocator, IOMemError> {
-        Ok(IOMemAllocator { layout: layout })
-    }
-}
-
-unsafe impl Allocator for IOMemAllocator {
+unsafe impl Allocator for DmaAllocator {
     /// Allocates IO memory.
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        // get the size to be allocated as a multiple of the initialized layout of the allocator
-        let sz = ((layout.size() + layout.size() - 1) / self.layout.size()) * self.layout.size();
-        let align = cmp::max(self.layout.align(), layout.align());
-
-        // construct the new layout for allocation
-        let alloc_layout = Layout::from_size_align(sz, align).expect("Layout was invalid.");
-
+        // TODO: ensure IOMMU stuff etc. here, for now:
         unsafe {
-            // do the actual allocation
-            // TODO: refer to the OS allocator
-            let ptr: *mut u8 = alloc::alloc::alloc_zeroed(alloc_layout);
-            if ptr.is_null() {
-                return Err(AllocError);
+            // do the actual allocation, refer to the OS allocator
+            let ptr: *mut u8 = alloc::alloc::alloc_zeroed(layout);
+            if !ptr.is_null() {
+                // wrap in in NonNull, remove option type
+                let ptr_nonnull = NonNull::new(ptr).unwrap();
+                // construct the NonNull slice for the return
+                Ok(NonNull::slice_from_raw_parts(ptr_nonnull, layout.size()))
+            } else {
+                Err(AllocError)
             }
-
-            // wrap in in NonNull, remove option type
-            let ptr_nonnull = NonNull::new(ptr).unwrap();
-
-            // construct the NonNull slice for the return
-            Ok(NonNull::slice_from_raw_parts(ptr_nonnull, sz))
         }
     }
 
     /// Deallocates the previously allocated IO memory.
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
-        // XXX: check the layout matches the allocator here?
+        // TODO: ensure IOMMU stuff, for now:
         let buf = ptr.as_ptr();
-        // TODO: refer to the OS allocator
         alloc::alloc::dealloc(buf, layout);
     }
 }
@@ -91,15 +73,15 @@ unsafe impl Allocator for IOMemAllocator {
 #[derive(Debug)]
 /// Represents an IO buffer (data handed to/from device).
 pub struct IOBuf {
-    buf: Vec<u8, IOMemAllocator>,
+    buf: Vec<u8, DmaAllocator>,
 }
 
 impl IOBuf {
     pub fn new(layout: Layout) -> Result<IOBuf, IOMemError> {
         // get the aligned buffer length
         // get the layouf for the allocation
-        let allocator = IOMemAllocator::new(layout);
-        let buf: Vec<u8, IOMemAllocator> = Vec::with_capacity_in(layout.size(), allocator.unwrap());
+        let allocator = DmaAllocator::default();
+        let buf: Vec<u8, DmaAllocator> = Vec::with_capacity_in(layout.size(), allocator);
         let mut iobuf = IOBuf { buf };
         // call expand here to make sure the buffer has the full size
         iobuf.expand();
@@ -201,7 +183,7 @@ pub struct IOBufPool {
     /// Pool of buffers
     pool: Vec<IOBuf>,
     /// The allocator used for new buffers
-    _allocator: IOMemAllocator,
+    _allocator: DmaAllocator,
     /// The allocation layout of the buffers
     layout: Layout,
 }
@@ -209,11 +191,11 @@ pub struct IOBufPool {
 impl IOBufPool {
     pub fn new(len: usize, align: usize) -> Result<IOBufPool, IOMemError> {
         let layout = Layout::from_size_align(len, align).expect("Layout was invalid.");
-        let allocator = IOMemAllocator::new(layout);
+        let allocator = DmaAllocator::default();
 
         Ok(IOBufPool {
             pool: vec![],
-            _allocator: allocator.unwrap(),
+            _allocator: allocator,
             layout: layout,
         })
     }
