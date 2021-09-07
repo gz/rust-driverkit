@@ -204,6 +204,7 @@ impl IOBufPool {
         if self.pool.len() > 0 {
             let mut buf = self.pool.pop().expect("should have a buffer here");
             buf.expand();
+            buf.clear();
             Ok(buf)
         } else {
             IOBuf::new(self.layout)
