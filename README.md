@@ -10,7 +10,7 @@ See LICENSE files.
 
 ## Authors
 
-Gerd Zellweger, Reto Achermann
+Gerd Zellweger, Reto Achermann, Erika Hunhoff, Ankit Bhardwaj
 
 ## Components
 
