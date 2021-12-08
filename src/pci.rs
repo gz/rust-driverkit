@@ -1,12 +1,11 @@
 // Copyright © 2021 VMware, Inc. All Rights Reserved.
 // SPDX-License-Identifier: BSD-2-Clause
+use core::fmt;
 
 use bit_field::BitField;
-use core::fmt;
 use x86::io;
 
-static PCI_CONF_ADDR: u16 = 0xCF8;
-static PCI_CONF_DATA: u16 = 0xCFC;
+use crate::PciInterface;
 
 pub type VendorId = u16;
 pub type DeviceId = u16;
@@ -22,47 +21,49 @@ pub enum PCIDeviceType {
     PciBridge = 0x01,
 }
 
-pub struct PCIAddress(u32);
+pub struct PCIAddress {
+    bus: u8,
+    dev: u8,
+    fun: u8,
+}
 
 impl PCIAddress {
-    fn new(bus: u8, device: u8, function: u8) -> PCIAddress {
-        assert!(device <= 31);
-        assert!(function <= 7);
+    fn new(bus: u8, dev: u8, fun: u8) -> PCIAddress {
+        assert!(dev <= 31);
+        assert!(fun <= 7);
 
-        //trace!("address ({:2}:{:2}.{:1})", bus, device, function);
-        PCIAddress(
-            (1 << 31) | ((bus as u32) << 16) | ((device as u32) << 11) | ((function as u32) << 8),
-        )
+        //trace!("address ({:2}:{:2}.{:1})", bus, dev, fun);
+        PCIAddress { bus, dev, fun }
     }
 
+    fn addr(&self) -> u32 {
+        (1 << 31) | ((self.bus as u32) << 16) | ((self.dev as u32) << 11) | ((self.fun as u32) << 8)
+    }
+}
+
+impl PciInterface for PCIAddress {
     fn read(&self, offset: u32) -> u32 {
-        let addr = self.0 | offset;
+        let addr = self.addr() | offset;
 
         unsafe {
-            io::outl(PCI_CONF_ADDR, addr);
-            io::inl(PCI_CONF_DATA)
+            io::outl(<Self as PciInterface>::PCI_CONF_ADDR, addr);
+            io::inl(<Self as PciInterface>::PCI_CONF_DATA)
         }
     }
 
-    fn write(&self, offset: u32, value: u32) {
-        let addr = self.0 | offset;
+    fn write(&mut self, offset: u32, value: u32) {
+        let addr = self.addr() | offset;
 
         unsafe {
-            io::outl(PCI_CONF_ADDR, addr);
-            io::outl(PCI_CONF_DATA, value);
+            io::outl(<Self as PciInterface>::PCI_CONF_ADDR, addr);
+            io::outl(<Self as PciInterface>::PCI_CONF_DATA, value);
         }
     }
 }
 
 impl fmt::Debug for PCIAddress {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{:02}:{:02}.{}",
-            self.0.get_bits(16..24) as u8,
-            self.0.get_bits(11..16) as u8,
-            self.0.get_bits(8..11) as u8
-        )
+        write!(f, "{:02}:{:02}.{}", self.bus, self.dev, self.fun)
     }
 }
 
@@ -146,6 +147,7 @@ impl PCIDevice {
 
     pub fn device_type(&self) -> PCIDeviceType {
         let header = self.0 .0.read(0x0c);
+
         match header.get_bits(16..23) as u8 {
             0x00 => PCIDeviceType::Endpoint,
             0x01 => PCIDeviceType::PciBridge,
@@ -165,13 +167,13 @@ impl PCIDevice {
         self.0 .0.read(0x04).get_bit(2)
     }
 
-    pub fn enable_bus_mastering(&self) {
+    pub fn enable_bus_mastering(&mut self) {
         let mut command = self.0 .0.read(0x04);
         command.set_bit(2, true);
         self.0 .0.write(0x04, command);
     }
 
-    pub fn bar(&self, index: u8) -> Option<Bar> {
+    pub fn bar(&mut self, index: u8) -> Option<Bar> {
         match self.device_type() {
             PCIDeviceType::Endpoint => assert!(index < 6),
             PCIDeviceType::PciBridge => assert!(index < 2),

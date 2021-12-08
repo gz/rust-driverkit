@@ -120,13 +120,17 @@ pub trait PciInterface {
     const PCI_CONF_ADDR: u16 = 0xcf8;
     const PCI_CONF_DATA: u16 = 0xcfc;
 
-    unsafe fn read(&self, addr: u32) -> u32 {
-        x86::io::outl(Self::PCI_CONF_ADDR, addr);
-        x86::io::inl(Self::PCI_CONF_DATA)
+    fn read(&self, addr: u32) -> u32 {
+        unsafe {
+            x86::io::outl(Self::PCI_CONF_ADDR, addr);
+            x86::io::inl(Self::PCI_CONF_DATA)
+        }
     }
 
-    unsafe fn write(&mut self, addr: u32, value: u32) {
-        x86::io::outl(Self::PCI_CONF_ADDR, addr);
-        x86::io::outl(Self::PCI_CONF_DATA, value);
+    fn write(&mut self, addr: u32, value: u32) {
+        unsafe {
+            x86::io::outl(Self::PCI_CONF_ADDR, addr);
+            x86::io::outl(Self::PCI_CONF_DATA, value);
+        }
     }
 }
