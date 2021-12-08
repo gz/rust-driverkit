@@ -27,13 +27,11 @@ extern crate mmap;
 #[cfg(target_os = "barrelfish")]
 extern crate libbarrelfish;
 
-#[cfg_attr(unix, macro_use)]
-extern crate log;
-
 extern crate x86;
 
 pub mod devq;
 pub mod iomem;
+pub mod pci;
 #[cfg(unix)]
 pub mod timedops;
 
@@ -115,5 +113,20 @@ pub trait MsrInterface {
 
     unsafe fn read(&mut self, msr: u32) -> u64 {
         x86::msr::rdmsr(msr)
+    }
+}
+
+pub trait PciInterface {
+    const PCI_CONF_ADDR: u16 = 0xcf8;
+    const PCI_CONF_DATA: u16 = 0xcfc;
+
+    unsafe fn read(&self, addr: u32) -> u32 {
+        x86::io::outl(Self::PCI_CONF_ADDR, addr);
+        x86::io::inl(Self::PCI_CONF_DATA)
+    }
+
+    unsafe fn write(&mut self, addr: u32, value: u32) {
+        x86::io::outl(Self::PCI_CONF_ADDR, addr);
+        x86::io::outl(Self::PCI_CONF_DATA, value);
     }
 }

@@ -1,5 +1,6 @@
 use std::prelude::v1::*;
 
+use log::debug;
 use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
