@@ -1,7 +1,7 @@
 [package]
 name = "driverkit"
-version = "0.11.0"
-authors = ["Gerd Zellweger <mail@gerdzellweger.com>", "Reto Achermann <achreto@gmail.com>", "Erika Hunhoff <hunhoff.erika@gmail.com>"]
+version = "0.12.0"
+authors = ["Gerd Zellweger <mail@gerdzellweger.com>", "Reto Achermann <achreto@gmail.com>", "Erika Hunhoff <hunhoff.erika@gmail.com>", "Ankit Bhardwaj <bhrdwj.ankit@gmail.com>"]
 readme = "README.md"
 description = "A driver framework defining standard types and interfaces for writing device drivers."
 keywords = ["driver", "os", "framework"]
@@ -20,6 +20,17 @@ x86 = "0.43"
 log = "0.4"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 bit_field = "0.10.1"
+fallible_collections = { git = "https://github.com/gz/fallible_collections.git", branch = "allocator_api", features = ["unstable"] }
+
+[dependencies.phf]
+version = "0.9.0"
+default-features = false # So phf uses libcore instead of libstd
+#optional = true
+
+[build-dependencies]
+pciid-parser = { git = "https://github.com/ilyazzz/pci-id-parser.git", branch = "master" }
+phf_codegen = { version = "0.9.0" }
+
 
 [[bin]]
 name = "testdrive"
