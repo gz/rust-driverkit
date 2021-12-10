@@ -274,7 +274,25 @@ impl PciDevice {
     }
 }
 
-pub fn scan_pci_bus() -> Result<Vec<PciDevice>, TryReserveError> {
+impl fmt::Display for PciDevice {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}: ", self.header.0)?;
+        if let Some(dev_info) = self.info() {
+            write!(f, "{} {}", dev_info.vendor_name, dev_info.device_name)
+        } else {
+            write!(
+                f,
+                "Unknown[{:#x}] Unknown[{:#x}]",
+                self.vendor_id(),
+                self.device_id()
+            )
+        }
+    }
+}
+
+/// Scans the PCI bus addresses, returns vector of all
+pub fn scan_bus() -> Result<Vec<PciDevice>, TryReserveError> {
     let mut devices = Vec::try_with_capacity(12)?;
 
     for bus in 0..=255 {
@@ -289,26 +307,4 @@ pub fn scan_pci_bus() -> Result<Vec<PciDevice>, TryReserveError> {
     }
 
     Ok(devices)
-}
-
-pub fn pci_device_lookup_with_devinfo(
-    vendor_id: VendorId,
-    device_id: DeviceId,
-) -> Option<PciDevice> {
-    let mut pci_device = None;
-    for bus in 0..=255 {
-        for device in 0..=31 {
-            for function in 0..=7 {
-                let dev = PciDevice::new(bus, device, function);
-                if let Some(dev) = dev {
-                    if dev.vendor_id() == vendor_id && dev.device_id() == device_id {
-                        pci_device = Some(dev);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    pci_device
 }
