@@ -1,7 +1,6 @@
 use alloc::collections::TryReserveError;
 use alloc::vec::Vec;
 use core::fmt;
-use fallible_collections::FallibleVecGlobal;
 
 use bit_field::BitField;
 use fallible_collections::vec::FallibleVec;

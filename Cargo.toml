@@ -20,7 +20,7 @@ x86 = "0.43"
 log = "0.4"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 bit_field = "0.10.1"
-fallible_collections = { git = "https://github.com/gz/fallible_collections.git", branch = "allocator_api", features = ["unstable"] }
+fallible_collections = { version = "0.4", features = ["unstable"] }
 
 [dependencies.phf]
 version = "0.9.0"
