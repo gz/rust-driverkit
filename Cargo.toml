@@ -20,17 +20,12 @@ x86 = "0.43"
 log = "0.4"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 bit_field = "0.10.1"
-fallible_collections = { version = "0.4", features = ["unstable"] }
-
-[dependencies.phf]
-version = "0.9.0"
-default-features = false # So phf uses libcore instead of libstd
-#optional = true
+fallible_collections = { version = "0.4", default-features = false, features = ["unstable"] }
+phf = { version = "0.9.0", default-features = false }
 
 [build-dependencies]
-pciid-parser = { git = "https://github.com/ilyazzz/pci-id-parser.git", branch = "master" }
-phf_codegen = { version = "0.9.0" }
-
+pciid-parser = "0.1.0"
+phf_codegen = "0.9.0"
 
 [[bin]]
 name = "testdrive"
