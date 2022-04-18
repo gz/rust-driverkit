@@ -312,7 +312,9 @@ impl Iterator for PciDeviceIterator {
                         return Some(pci_device);
                     }
                 }
+                self.function = 0;
             }
+            self.device = 0;
         }
 
         None
