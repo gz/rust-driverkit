@@ -16,11 +16,10 @@ byteorder = "1.4"
 matches = "0.1.8"
 
 [dependencies]
-x86 = "0.45"
+x86 = "0.47"
 log = "0.4"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 bit_field = "0.10.1"
-fallible_collections = { version = "0.4", default-features = false, features = ["unstable"] }
 phf = { version = "0.10.0", default-features = false }
 
 [build-dependencies]

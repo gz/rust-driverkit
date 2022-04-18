@@ -1,6 +1,5 @@
 #![feature(
     core_intrinsics,
-    try_reserve,
     allocator_api,
     nonnull_slice_from_raw_parts
 )]

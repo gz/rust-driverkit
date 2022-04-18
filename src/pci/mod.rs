@@ -1,9 +1,6 @@
-use alloc::collections::TryReserveError;
-use alloc::vec::Vec;
 use core::fmt;
 
 use bit_field::BitField;
-use fallible_collections::vec::FallibleVec;
 use x86::io;
 
 pub mod device_db;
@@ -291,20 +288,42 @@ impl fmt::Display for PciDevice {
     }
 }
 
-/// Scans the PCI bus addresses, returns vector of all
-pub fn scan_bus() -> Result<Vec<PciDevice>, TryReserveError> {
-    let mut devices = Vec::try_with_capacity(12)?;
+pub struct PciDeviceIterator {
+    bus: u8,
+    device: u8,
+    function: u8,
+}
 
-    for bus in 0..=255 {
-        for device in 0..=31 {
-            for function in 0..=7 {
-                let dev = PciDevice::new(bus, device, function);
-                if let Some(dev) = dev {
-                    devices.try_push(dev)?;
+// Implement `Iterator` for `PciDeviceIterator`.
+// The `Iterator` trait only requires a method to be defined for the `next` element.
+impl Iterator for PciDeviceIterator {
+    type Item = PciDevice;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for bus in self.bus..=255 {
+            for device in self.device..=31 {
+                for function in self.function..=7 {
+                    if let Some(pci_device) = PciDevice::new(bus, device, function) {
+                        self.bus = bus;
+                        self.device = device;
+                        // Start with next function on next iteration
+                        self.function = function + 1;
+
+                        return Some(pci_device);
+                    }
                 }
             }
         }
-    }
 
-    Ok(devices)
+        None
+    }
+}
+
+/// Scans the PCI bus addresses, returns vector of all
+pub fn scan_bus() -> PciDeviceIterator {
+    PciDeviceIterator {
+        bus: 0x0,
+        device: 0x0,
+        function: 0x0,
+    }
 }
