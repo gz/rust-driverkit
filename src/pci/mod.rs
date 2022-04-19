@@ -24,9 +24,9 @@ pub enum PciDeviceType {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct PCIAddress {
-    bus: u8,
-    dev: u8,
-    fun: u8,
+    pub bus: u8,
+    pub dev: u8,
+    pub fun: u8,
 }
 
 impl PCIAddress {
@@ -154,6 +154,10 @@ impl PciDevice {
         } else {
             None
         }
+    }
+
+    pub fn pci_address(&self) -> PCIAddress {
+        self.header.0
     }
 
     pub fn device_type(&self) -> PciDeviceType {
