@@ -23,7 +23,7 @@ bit_field = "0.10.1"
 phf = { version = "0.10.0", default-features = false }
 
 [build-dependencies]
-pciid-parser = "0.1.0"
+pciid-parser = "0.4.0"
 phf_codegen = "0.10.0"
 
 [[bin]]
