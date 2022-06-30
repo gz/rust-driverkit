@@ -4,7 +4,7 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::path::Path;
 
-use pciid_parser::PciDatabase;
+use pciid_parser::Database;
 
 fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
@@ -19,8 +19,7 @@ struct PciDeviceInfo {
 }
 
 fn main() {
-    let db = PciDatabase::read().unwrap();
-
+    let db = Database::read().unwrap();
     let path = Path::new(&env::var("OUT_DIR").unwrap()).join("pci_device_map.rs");
     let mut filewriter = BufWriter::new(File::create(&path).unwrap());
 
@@ -30,19 +29,33 @@ fn main() {
         let vendor_name = string_to_static_str(vendor.name.clone());
 
         for (device_id, device) in vendor.devices.iter() {
-            let vendor_id = u16::from_str_radix(vendor_id, 16).expect("Invalid vendor ID");
-            let device_id = u16::from_str_radix(device_id, 16).expect("Invalid device ID");
+            /*eprintln!(
+                "vendor={:#?} device={:#?} vendor_id={:?} ||",
+                vendor, device, vendor_id
+            );*/
+            let vendor_id = u16::from_str_radix(vendor_id, 16);
+            let device_id = u16::from_str_radix(device_id, 16);
 
-            let key = (vendor_id as u32) << (u32::BITS / 2) | device_id as u32;
-            let pci_dev_info = PciDeviceInfo {
-                vendor_id,
-                device_id,
-                vendor_name,
-                device_name: string_to_static_str(device.name.clone()),
-            };
+            if vendor_id.is_ok() && device_id.is_ok() {
+                let vendor_id = vendor_id.unwrap();
+                let device_id = device_id.unwrap();
+                eprintln!("{} {}", vendor_id, device_id);
 
-            devices.entry(key, string_to_static_str(format!("{:?}", pci_dev_info)));
-            eprintln!("-- {} {:?}", device_id, device);
+                let key = (vendor_id as u32) << (u32::BITS / 2) | device_id as u32;
+                let pci_dev_info = PciDeviceInfo {
+                    vendor_id,
+                    device_id,
+                    vendor_name,
+                    device_name: string_to_static_str(device.name.clone()),
+                };
+                devices.entry(key, string_to_static_str(format!("{:?}", pci_dev_info)));
+                eprintln!("-- {} {:?}", device_id, device);
+            } else {
+                // this else branch should go away when this is fixed
+                // https://github.com/ilya-zlobintsev/pci-id-parser/issues/3
+                eprintln!("failed to parse vendor and device id from pci");
+            }
+
             //assert!(device.subdevices.is_empty(), "Don't deal with this atm.");
         }
     }
