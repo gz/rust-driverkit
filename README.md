@@ -2,14 +2,6 @@
 
 Framework for writing and simplifying testing of device drivers. This is work in progress.
 
-## License
-
-See LICENSE files.
-
-## Authors
-
-Gerd Zellweger, Reto Achermann, Erika Hunhoff, Ankit Bhardwaj
-
 ## Components
 
  * iomem: managing memory for buffers used by devices such as network cards, disks, etc.
