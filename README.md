@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/gz/rust-driverkit.svg?branch=master)](https://travis-ci.org/gz/rust-driverkit)
-
 # Driverkit
 
 Framework for writing and simplifying testing of device drivers. This is work in progress.
