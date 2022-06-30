@@ -33,28 +33,20 @@ fn main() {
                 "vendor={:#?} device={:#?} vendor_id={:?} ||",
                 vendor, device, vendor_id
             );*/
-            let vendor_id = u16::from_str_radix(vendor_id, 16);
-            let device_id = u16::from_str_radix(device_id, 16);
+            let vendor_id = u16::from_str_radix(vendor_id, 16).unwrap();
+            let device_id = u16::from_str_radix(device_id, 16).unwrap();
 
-            if vendor_id.is_ok() && device_id.is_ok() {
-                let vendor_id = vendor_id.unwrap();
-                let device_id = device_id.unwrap();
-                eprintln!("{} {}", vendor_id, device_id);
+            eprintln!("{} {}", vendor_id, device_id);
 
-                let key = (vendor_id as u32) << (u32::BITS / 2) | device_id as u32;
-                let pci_dev_info = PciDeviceInfo {
-                    vendor_id,
-                    device_id,
-                    vendor_name,
-                    device_name: string_to_static_str(device.name.clone()),
-                };
-                devices.entry(key, string_to_static_str(format!("{:?}", pci_dev_info)));
-                eprintln!("-- {} {:?}", device_id, device);
-            } else {
-                // this else branch should go away when this is fixed
-                // https://github.com/ilya-zlobintsev/pci-id-parser/issues/3
-                eprintln!("failed to parse vendor and device id from pci");
-            }
+            let key = (vendor_id as u32) << (u32::BITS / 2) | device_id as u32;
+            let pci_dev_info = PciDeviceInfo {
+                vendor_id,
+                device_id,
+                vendor_name,
+                device_name: string_to_static_str(device.name.clone()),
+            };
+            devices.entry(key, string_to_static_str(format!("{:?}", pci_dev_info)));
+            eprintln!("-- {} {:?}", device_id, device);
 
             //assert!(device.subdevices.is_empty(), "Don't deal with this atm.");
         }
