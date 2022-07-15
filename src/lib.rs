@@ -1,8 +1,4 @@
-#![feature(
-    core_intrinsics,
-    allocator_api,
-    nonnull_slice_from_raw_parts
-)]
+#![feature(core_intrinsics, allocator_api, nonnull_slice_from_raw_parts)]
 #![cfg_attr(unix, feature(libc))]
 #![no_std]
 
