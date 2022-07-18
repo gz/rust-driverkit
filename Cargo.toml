@@ -20,7 +20,7 @@ x86 = { version = "0.51", features = ["unstable"] }
 log = "0.4"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 bit_field = "0.10.1"
-phf = { version = "0.10.0", default-features = false }
+phf = { version = "0.11.0", default-features = false }
 
 [build-dependencies]
 pciid-parser = "0.5.0"
