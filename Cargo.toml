@@ -24,7 +24,7 @@ phf = { version = "0.10.0", default-features = false }
 
 [build-dependencies]
 pciid-parser = "0.5.0"
-phf_codegen = "0.10.0"
+phf_codegen = "0.11.0"
 
 [[bin]]
 name = "testdrive"
