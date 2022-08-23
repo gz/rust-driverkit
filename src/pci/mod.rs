@@ -1,11 +1,10 @@
 use core::fmt;
 
 use bit_field::BitField;
-use x86::io;
+
+use crate::arch::PciInterface;
 
 pub mod device_db;
-
-use crate::PciInterface;
 
 pub type VendorId = u16;
 pub type DeviceId = u16;
@@ -38,28 +37,8 @@ impl PCIAddress {
         PCIAddress { bus, dev, fun }
     }
 
-    fn addr(&self) -> u32 {
+    pub fn addr(&self) -> u32 {
         (1 << 31) | ((self.bus as u32) << 16) | ((self.dev as u32) << 11) | ((self.fun as u32) << 8)
-    }
-}
-
-impl PciInterface for PCIAddress {
-    fn read(&self, offset: u32) -> u32 {
-        let addr = self.addr() | offset;
-
-        unsafe {
-            io::outl(<Self as PciInterface>::PCI_CONF_ADDR, addr);
-            io::inl(<Self as PciInterface>::PCI_CONF_DATA)
-        }
-    }
-
-    fn write(&mut self, offset: u32, value: u32) {
-        let addr = self.addr() | offset;
-
-        unsafe {
-            io::outl(<Self as PciInterface>::PCI_CONF_ADDR, addr);
-            io::outl(<Self as PciInterface>::PCI_CONF_DATA, value);
-        }
     }
 }
 

@@ -22,8 +22,6 @@ extern crate mmap;
 #[cfg(target_os = "barrelfish")]
 extern crate libbarrelfish;
 
-extern crate x86;
-
 pub mod devq;
 pub mod iomem;
 pub mod pci;
@@ -44,6 +42,18 @@ pub use barrelfish::*;
 
 #[cfg(target_os = "linux")]
 pub use linux::*;
+
+// The aarch64 platform specific code.
+#[cfg(target_arch = "x86_64")]
+#[path = "arch/x86/mod.rs"]
+mod arch;
+
+// The aarch64 platform specific code.
+#[cfg(target_arch = "aarch64")]
+#[path = "arch/aarch64/mod.rs"]
+mod arch;
+
+pub use arch::*;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DriverState {
@@ -99,33 +109,4 @@ pub trait DriverControl: Sized {
 
     fn state(&self) -> DriverState;
     fn set_state(&mut self, ds: DriverState);
-}
-
-pub trait MsrInterface {
-    unsafe fn write(&mut self, msr: u32, value: u64) {
-        x86::msr::wrmsr(msr, value);
-    }
-
-    unsafe fn read(&mut self, msr: u32) -> u64 {
-        x86::msr::rdmsr(msr)
-    }
-}
-
-pub trait PciInterface {
-    const PCI_CONF_ADDR: u16 = 0xcf8;
-    const PCI_CONF_DATA: u16 = 0xcfc;
-
-    fn read(&self, addr: u32) -> u32 {
-        unsafe {
-            x86::io::outl(Self::PCI_CONF_ADDR, addr);
-            x86::io::inl(Self::PCI_CONF_DATA)
-        }
-    }
-
-    fn write(&mut self, addr: u32, value: u32) {
-        unsafe {
-            x86::io::outl(Self::PCI_CONF_ADDR, addr);
-            x86::io::outl(Self::PCI_CONF_DATA, value);
-        }
-    }
 }
