@@ -2,6 +2,8 @@
 
 pub use armv8::aarch64::vm::granule4k::{IOAddr, PAddr, VAddr};
 
+use crate::pci::PCIAddress;
+
 pub trait MsrInterface {
     unsafe fn write(&mut self, msr: u32, value: u64) {
         panic!("NYI!");
