@@ -2,6 +2,8 @@
 
 extern crate x86;
 
+pub use x86::current::paging::{IOAddr, PAddr, VAddr};
+
 use crate::pci::PCIAddress;
 
 pub trait MsrInterface {

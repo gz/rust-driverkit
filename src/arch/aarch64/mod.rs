@@ -1,6 +1,6 @@
-// x86 specific driver kit functionality
+// aarch64 specific driver kit functionality
 
-extern crate x86;
+pub use armv8::aarch64::vm::granule4k::{IOAddr, PAddr, VAddr};
 
 pub trait MsrInterface {
     unsafe fn write(&mut self, msr: u32, value: u64) {
