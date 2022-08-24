@@ -9,7 +9,7 @@ use core::ptr::NonNull;
 
 use custom_error::custom_error;
 
-use x86::current::paging::{IOAddr, PAddr, VAddr};
+use crate::{IOAddr, PAddr, VAddr};
 
 // custom error for the IOMemory
 custom_error! {pub IOMemError
