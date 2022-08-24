@@ -108,6 +108,10 @@ impl DevMem {
     pub fn len(&self) -> usize {
         self.mapping.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 #[cfg(test)]

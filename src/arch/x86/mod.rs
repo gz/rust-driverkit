@@ -7,10 +7,20 @@ pub use x86::current::paging::{IOAddr, PAddr, VAddr};
 use crate::pci::PCIAddress;
 
 pub trait MsrInterface {
+    /// Write a MSR.
+    ///
+    /// # Safety
+    /// - Needs CPL 0 (kernel mode)
+    /// - MSR needs to be writeable and available on platform
     unsafe fn write(&mut self, msr: u32, value: u64) {
         x86::msr::wrmsr(msr, value);
     }
 
+    /// Read a MSR.
+    ///
+    /// # Safety
+    /// - Needs CPL 0 (kernel mode)
+    /// - MSR needs to be readable and available on platform
     unsafe fn read(&mut self, msr: u32) -> u64 {
         x86::msr::rdmsr(msr)
     }

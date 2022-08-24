@@ -29,11 +29,11 @@ pub const KERNEL_BASE: u64 = 0x400000000000;
 /// A trait to tag objects which a device needs to read or write over DMA.
 pub trait DmaObject {
     fn paddr(&self) -> PAddr {
-        PAddr::from(&*self as *const Self as *const () as u64) - PAddr::from(KERNEL_BASE)
+        PAddr::from(self as *const Self as *const () as u64) - PAddr::from(KERNEL_BASE)
     }
 
     fn vaddr(&self) -> VAddr {
-        VAddr::from(&*self as *const Self as *const () as usize)
+        VAddr::from(self as *const Self as *const () as usize)
     }
 
     fn ioaddr(&self) -> IOAddr {
@@ -153,6 +153,10 @@ impl IOBuf {
     pub fn len(&self) -> usize {
         self.buf.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.buf.is_empty()
+    }
 }
 
 /// implementation for the index operator [] on IOBuf
@@ -197,12 +201,12 @@ impl IOBufPool {
         Ok(IOBufPool {
             pool: vec![],
             _allocator: allocator,
-            layout: layout,
+            layout,
         })
     }
 
     pub fn get_buf(&mut self) -> Result<IOBuf, IOMemError> {
-        if self.pool.len() > 0 {
+        if !self.pool.is_empty() {
             let mut buf = self.pool.pop().expect("should have a buffer here");
             buf.expand();
             buf.clear();

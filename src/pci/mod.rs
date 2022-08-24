@@ -128,11 +128,7 @@ pub struct PciDevice {
 impl PciDevice {
     pub fn new(bus: u8, device: u8, function: u8) -> Option<Self> {
         let header = PCIHeader::new(bus, device, function);
-        if let Some(header) = header {
-            Some(PciDevice { header })
-        } else {
-            None
-        }
+        header.map(|header| PciDevice { header })
     }
 
     pub fn pci_address(&self) -> PCIAddress {
