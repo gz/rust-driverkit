@@ -1,6 +1,6 @@
 [package]
 name = "driverkit"
-version = "0.20.0"
+version = "0.21.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>", "Reto Achermann <achreto@gmail.com>", "Erika Hunhoff <hunhoff.erika@gmail.com>", "Ankit Bhardwaj <bhrdwj.ankit@gmail.com>"]
 readme = "README.md"
 description = "A driver framework defining standard types and interfaces for writing device drivers."
@@ -22,7 +22,7 @@ bit_field = "0.10.1"
 phf = { version = "0.10.0", default-features = false }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-x86 = { version = "0.51", features = ["unstable"] }
+x86 = { version = "0.52", features = ["unstable"] }
 
 [target.'cfg(target_arch = "aarch64")'.dependencies]
 armv8 = { git = "https://github.com/achreto/rust-armv8" }
