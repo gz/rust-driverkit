@@ -19,7 +19,7 @@ matches = "0.1"
 log = "0.4"
 custom_error = { version = "1.9", default-features = false, features = ["unstable"] }
 bit_field = "0.10.1"
-phf = { version = "0.10.0", default-features = false }
+phf = { version = "0.11.1", default-features = false }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 x86 = { version = "0.52", features = ["unstable"] }
