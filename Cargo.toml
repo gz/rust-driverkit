@@ -25,7 +25,7 @@ phf = { version = "0.10.0", default-features = false }
 x86 = { version = "0.52", features = ["unstable"] }
 
 [target.'cfg(target_arch = "aarch64")'.dependencies]
-armv8 = { git = "https://github.com/achreto/rust-armv8" }
+armv8 = "0.0.1"
 
 [build-dependencies]
 pciid-parser = "0.5.0"
