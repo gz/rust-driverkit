@@ -1,8 +1,8 @@
-use core::fmt;
+use core::{fmt, ptr::addr_of_mut};
 
 use bit_field::BitField;
 
-use crate::arch::PciInterface;
+use crate::arch::{PAddr, VAddr, PciInterface};
 
 pub mod device_db;
 
@@ -120,6 +120,264 @@ pub struct Bar {
     pub size: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CapabilityId {
+    /// Null Capability
+    ///
+    /// This capability contains no registers other than those described below.
+    /// It may be present in any Function. Functions may contain multiple
+    /// instances of this capability. The Null Capability is 16 bits and
+    /// contains an 8-bit Capability ID followed by an 8-bit Next Capability
+    /// Pointer.
+    Null,
+    /// PCI Power Management Interface
+    ///
+    /// This Capability structure provides a standard interface to control power
+    /// management features in a device Function. It is fully documented in the
+    /// PCI Bus Power Management Interface Specification.
+    PowerManagement,
+    /// AGP
+    ///
+    /// This Capability structure identifies a controller that is capable of
+    /// using Accelerated Graphics Port features. Full documentation can be
+    /// found in the Accelerated Graphics Port Interface Specification.
+    Agp,
+    /// VPD
+    ///
+    /// This Capability structure identifies a device Function that supports
+    /// Vital Product Data. Full documentation of this feature can be found in
+    /// the PCI Local Bus Specification.
+    Vdp,
+    /// Slot Identification
+    ///
+    /// This Capability structure identifies a bridge that provides external
+    /// expansion capabilities. Full documentation of this feature can be found
+    /// in the PCI-to-PCI Bridge Architecture Specification.
+    SlotIdent,
+    /// Message Signaled Interrupts
+    ///
+    /// This Capability structure identifies a device Function that can do
+    /// message signaled interrupt delivery. Full documentation of this feature
+    /// can be found in the PCI Local Bus Specification.
+    Msi,
+    /// CompactPCI Hot Swap
+    ///
+    /// This Capability structure provides a standard interface to control and
+    /// sense status within a device that supports Hot Swap insertion and
+    /// extraction in a CompactPCI system. This Capability is documented in the
+    /// CompactPCI Hot Swap Specification PICMG 2.1, R1.0 available at
+    /// http://www.picmg.org.
+    CompactPci,
+    /// PCI-X
+    ///
+    /// Refer to the PCI-X Protocol Addendum to the PCI Local Bus Specification
+    /// for details.
+    PciX,
+    /// HyperTransport
+    ///
+    /// This Capability structure provides control and status for devices that
+    /// implement HyperTransport Technology links. For details, refer to the
+    /// HyperTransport I/O Link Specification available at
+    /// http://www.hypertransport.org.
+    HyperTransport,
+    /// Vendor Specific
+    ///
+    /// This Capability structure allows device vendors to use the Capability
+    /// mechanism to expose vendor-specific registers. The byte immediately
+    /// following the Next Pointer in the Capability structure is defined to be
+    /// a length field. This length field provides the number of bytes in the
+    /// Capability structure (including the Capability ID and Next Pointer
+    /// bytes). All remaining bytes in the capability structure are
+    /// vendor-specific.
+    VendorSpecific,
+    /// Debug port
+    DebugPort,
+    /// CompactPCI central resource control
+    ///
+    /// Definition of this Capability can be found in the PICMG 2.13
+    /// Specification (http://www.picmg.com).
+    CompactPCI,
+    /// PCI Hot-Plug
+    ///
+    /// This Capability ID indicates that the associated device conforms to the
+    /// Standard Hot-Plug Controller model.
+    HotPlug,
+    /// PCI Bridge Subsystem Vendor ID
+    BridgeSubsystemVendor,
+    /// AGP 8x
+    Agp8,
+    /// Secure Device
+    SecureDevice,
+    /// PCI Express
+    PCIExpress,
+    /// MSI-X
+    ///
+    /// This Capability ID identifies an optional extension to the basic MSI
+    /// functionality.
+    MsiX,
+    /// Serial ATA Data/Index Configuration
+    SerialAtaConfiguration,
+    /// Advanced Features (AF)
+    ///
+    /// Full documentation of this feature can be found in the Advanced
+    /// Capabilities for Conventional PCI ECN.
+    AdvancedFeatures,
+    /// Enhanced Allocation
+    EnhancedAllocation,
+    /// Flattening Portal Bridge
+    FlatteningPortalBridge,
+    /// Reserved
+    Unknown(u8),
+}
+
+impl From<u8> for CapabilityId {
+    fn from(capid: u8) -> Self {
+        match capid {
+            0x00 => CapabilityId::Null,
+            0x01 => CapabilityId::PowerManagement,
+            0x02 => CapabilityId::Agp,
+            0x03 => CapabilityId::Vdp,
+            0x04 => CapabilityId::SlotIdent,
+            0x05 => CapabilityId::Msi,
+            0x06 => CapabilityId::CompactPci,
+            0x07 => CapabilityId::PciX,
+            0x08 => CapabilityId::HyperTransport,
+            0x09 => CapabilityId::VendorSpecific,
+            0x0A => CapabilityId::DebugPort,
+            0x0B => CapabilityId::CompactPCI,
+            0x0C => CapabilityId::HotPlug,
+            0x0D => CapabilityId::BridgeSubsystemVendor,
+            0x0E => CapabilityId::Agp8,
+            0x0F => CapabilityId::SecureDevice,
+            0x10 => CapabilityId::PCIExpress,
+            0x11 => CapabilityId::MsiX,
+            0x12 => CapabilityId::SerialAtaConfiguration,
+            0x13 => CapabilityId::AdvancedFeatures,
+            0x14 => CapabilityId::EnhancedAllocation,
+            0x15 => CapabilityId::FlatteningPortalBridge,
+            x => CapabilityId::Unknown(x),
+        }
+    }
+}
+
+pub enum CapabilityType<'s> {
+    MsiX(MsiX<'s>),
+    Unknown(CapabilityId),
+}
+
+#[derive(Debug)]
+pub struct MsiX<'s> {
+    /// A reference to the device's PCI header.
+    header: &'s mut PCIHeader,
+    /// The offset where the MSI-X config is located within the PCI header.
+    pub offset: u32,
+}
+
+impl<'s> MsiX<'s> {
+
+    pub fn message_control(&self) -> u16 {
+        (self.header.0.read(self.offset) >> 16) as u16
+    }
+
+    pub fn enabled(&self) -> bool {
+        self.message_control().get_bit(15)
+    }
+
+    pub fn enable(&mut self) {
+        let ctrl = *self.message_control().set_bit(15, true);
+
+        let mut hdr = self.header.0.read(self.offset);
+        hdr = (hdr & 0xFFFF) | ((ctrl as u32) << 16);
+        self.header.0.write(self.offset, hdr);
+    }
+
+    pub fn function_mask(&self) -> bool {
+        self.message_control().get_bit(14)
+    }
+
+    /// Table Size is N - 1 encoded, and is the number of entries in the MSI-X
+    /// table.
+    ///
+    /// This field is Read-Only.
+    pub fn table_size(&self) -> usize {
+        self.message_control().get_bits(0..10) as usize
+    }
+
+    /// BIR specifies which BAR is used for the Message Table.
+    ///
+    /// This may be a 64-bit BAR, and is zero-indexed (so BIR=0, BAR0, offset
+    /// 0x10 into the header).
+    pub fn bir(&self) -> u8 {
+        (self.header.0.read(self.offset + 4) & 0b111) as u8
+    }
+
+    /// Table Offset is an offset into that BAR where the Message Table lives.
+    ///
+    /// Note that it is 8-byte aligned.
+    pub fn table_offset(&self) -> u32 {
+        self.header.0.read(self.offset + 4) & !0b111
+    }
+
+
+    /// BIR specifies which BAR is used for the Message Table.
+    ///
+    /// This may be a 64-bit BAR, and is zero-indexed (so BIR=0, BAR0, offset
+    /// 0x10 into the header).
+    pub fn pending_bit_bir(&self) -> u8 {
+        (self.header.0.read(self.offset + 8) & 0b111) as u8
+    }
+
+    /// Table Offset is an offset into that BAR where the Message Table lives.
+    ///
+    /// Note that it is 8-byte aligned.
+    pub fn pending_bit_table_offset(&self) -> u32 {
+        self.header.0.read(self.offset + 8) & !0b111
+    }
+}
+
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct MsiXTableEntry {
+    addr: u64,
+    data: u32,
+    vector_control: u32,
+}
+
+
+#[derive(Debug)]
+pub struct Capability {
+    /// The (parsed) ID of the capability (read from bits 0..8 at offset).
+    pub id: CapabilityId,
+    /// The offset where the capability is located within the PCI header.
+    pub offset: u8,
+}
+
+pub struct CapabilitiesIter<'s> {
+    header: &'s PCIHeader,
+    next: u8,
+}
+
+impl<'s> Iterator for CapabilitiesIter<'s> {
+    type Item = Capability;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next == 0 {
+            return None;
+        }
+
+        let cap_header = self.header.0.read(self.next as u32);
+        let id = CapabilityId::from(cap_header.get_bits(0..8) as u8);
+        let cap = Capability {
+            id,
+            offset: self.next,
+        };
+
+        self.next = cap_header.get_bits(8..16) as u8;
+        Some(cap)
+    }
+}
+
 #[derive(Debug)]
 pub struct PciDevice {
     header: PCIHeader,
@@ -142,6 +400,49 @@ impl PciDevice {
             0x00 => PciDeviceType::Endpoint,
             0x01 => PciDeviceType::PciBridge,
             _ => PciDeviceType::Unknown,
+        }
+    }
+
+    pub fn get_cap_region_mut(&mut self, cap: Capability) -> CapabilityType {
+        match cap.id {
+            CapabilityId::MsiX => CapabilityType::MsiX(MsiX { header: &mut self.header, offset: cap.offset as u32 }),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_msix_config(&mut self) -> Option<MsiX> {
+        self.capabilities().find(|cap| cap.id == CapabilityId::MsiX).map(move |cap| {
+            MsiX { header: &mut self.header, offset: cap.offset as u32 }
+        })
+    }
+
+    pub fn get_msix_irq_table_mut(&mut self, paddr_to_vaddr_conversion: &Fn(PAddr) -> VAddr) -> Option<&mut [MsiXTableEntry]> {
+
+        if let Some(mut msi) = self.get_msix_config() {
+            log::info!("Device has MSI-X capability and it's {}", if msi.enabled() { "enabled" } else { "not enabled" });
+            if !msi.enabled() {
+                msi.enable();
+            }
+            log::info!("Device has MSI-X capability and it's {}", if msi.enabled() { "enabled" } else { "not enabled" });
+            log::info!("Device MSI-X table is at bar {} offset {} table size is {}", msi.bir(), msi.table_offset(), msi.table_size());
+
+            let table_bar = msi.bir();
+            let table_offset = msi.table_offset();
+
+            let entries = msi.table_size() + 1;
+            let bar = self.bar(table_bar).unwrap();
+            let addr = paddr_to_vaddr_conversion(PAddr::from(bar.address + table_offset as u64));
+
+            // Safety:
+            // - We're casting the part of the memory to a MSI-X table according to the spec
+            // - It's just plain-old-data
+            // - We have &mut self when giving out a mut reference to the table
+            // - Sanity check that we're within `bar`'s range (TODO)
+            // - Check that `addr` satisfies alignment for [MsiXTableEntry] (TODO)
+            let msix_table = unsafe { core::slice::from_raw_parts_mut(addr.as_mut_ptr::<MsiXTableEntry>(), entries) };
+            return Some(msix_table);
+        } else {
+            return None;
         }
     }
 
@@ -226,6 +527,30 @@ impl PciDevice {
         } else {
             unimplemented!("Unable to handle IO BARs")
         }
+    }
+
+    pub fn status(&self) -> u16 {
+        (self.header.0.read(0x4) >> 16)as u16
+    }
+
+    /// Offset to capability pointer
+    pub fn capabilities_pointer(&self) -> Option<u8> {
+        let cap_ptr = self.header.0.read(0x34).get_bits(0..8) as u8;
+        if self.status().get_bit(4) && cap_ptr != 0x0 {
+            Some(cap_ptr)
+        } else {
+            None
+        }
+    }
+
+    pub fn capabilities(&self) -> CapabilitiesIter {
+        self.capabilities_pointer().map_or(CapabilitiesIter {
+            header: &self.header,
+            next: 0x0
+        }, |cap_ptr| CapabilitiesIter {
+            header: &self.header,
+            next: cap_ptr
+        })
     }
 
     pub fn revision_and_class(&self) -> (DeviceRevision, BaseClass, SubClass, Interface) {
