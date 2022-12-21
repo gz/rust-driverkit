@@ -339,9 +339,9 @@ impl<'s> MsiX<'s> {
 #[derive(Debug)]
 #[repr(C)]
 pub struct MsiXTableEntry {
-    addr: u64,
-    data: u32,
-    vector_control: u32,
+    pub addr: u64,
+    pub data: u32,
+    pub vector_control: u32,
 }
 
 
@@ -441,6 +441,28 @@ impl PciDevice {
             // - Check that `addr` satisfies alignment for [MsiXTableEntry] (TODO)
             let msix_table = unsafe { core::slice::from_raw_parts_mut(addr.as_mut_ptr::<MsiXTableEntry>(), entries) };
             return Some(msix_table);
+        } else {
+            return None;
+        }
+    }
+
+    pub fn get_msix_irq_table_info(&mut self, paddr_to_vaddr_conversion: &Fn(PAddr) -> VAddr) -> Option<(VAddr, usize)> {
+
+        if let Some(mut msi) = self.get_msix_config() {
+            log::info!("Device has MSI-X capability and it's {}", if msi.enabled() { "enabled" } else { "not enabled" });
+            if !msi.enabled() {
+                msi.enable();
+            }
+            log::info!("Device has MSI-X capability and it's {}", if msi.enabled() { "enabled" } else { "not enabled" });
+            log::info!("Device MSI-X table is at bar {} offset {} table size is {}", msi.bir(), msi.table_offset(), msi.table_size());
+
+            let table_bar = msi.bir();
+            let table_offset = msi.table_offset();
+
+            let entries = msi.table_size() + 1;
+            let bar = self.bar(table_bar).unwrap();
+
+            return Some((paddr_to_vaddr_conversion(PAddr::from(bar.address + table_offset as u64)), entries));
         } else {
             return None;
         }
