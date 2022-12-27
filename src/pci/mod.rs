@@ -446,28 +446,6 @@ impl PciDevice {
         }
     }
 
-    pub fn get_msix_irq_table_info(&mut self, paddr_to_vaddr_conversion: &Fn(PAddr) -> VAddr) -> Option<(VAddr, usize)> {
-
-        if let Some(mut msi) = self.get_msix_config() {
-            log::info!("Device has MSI-X capability and it's {}", if msi.enabled() { "enabled" } else { "not enabled" });
-            if !msi.enabled() {
-                msi.enable();
-            }
-            log::info!("Device has MSI-X capability and it's {}", if msi.enabled() { "enabled" } else { "not enabled" });
-            log::info!("Device MSI-X table is at bar {} offset {} table size is {}", msi.bir(), msi.table_offset(), msi.table_size());
-
-            let table_bar = msi.bir();
-            let table_offset = msi.table_offset();
-
-            let entries = msi.table_size() + 1;
-            let bar = self.bar(table_bar).unwrap();
-
-            return Some((paddr_to_vaddr_conversion(PAddr::from(bar.address + table_offset as u64)), entries));
-        } else {
-            return None;
-        }
-    }
-
     pub fn vendor_id(&self) -> VendorId {
         self.header.0.read(0x00) as VendorId
     }
