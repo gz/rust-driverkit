@@ -8,16 +8,9 @@ extern crate std;
 
 extern crate alloc;
 
-#[cfg(unix)]
-extern crate byteorder;
-#[cfg(unix)]
-extern crate libc;
 #[cfg_attr(unix, macro_use(matches, assert_matches))]
 #[cfg(unix)]
 extern crate matches;
-
-#[cfg(unix)]
-extern crate mmap;
 
 #[cfg(target_os = "barrelfish")]
 extern crate libbarrelfish;

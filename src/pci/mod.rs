@@ -1,4 +1,4 @@
-use core::{fmt, ptr::addr_of_mut};
+use core::fmt;
 
 use bit_field::BitField;
 
@@ -416,7 +416,7 @@ impl PciDevice {
         })
     }
 
-    pub fn get_msix_irq_table_mut(&mut self, paddr_to_vaddr_conversion: &Fn(PAddr) -> VAddr) -> Option<&mut [MsiXTableEntry]> {
+    pub fn get_msix_irq_table_mut(&mut self, paddr_to_vaddr_conversion: &dyn Fn(PAddr) -> VAddr) -> Option<&mut [MsiXTableEntry]> {
 
         if let Some(mut msi) = self.get_msix_config() {
             log::info!("Device has MSI-X capability and it's {}", if msi.enabled() { "enabled" } else { "not enabled" });

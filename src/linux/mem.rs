@@ -4,17 +4,17 @@ use std::io::Seek;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use libc;
-use libc::{MAP_ANON, MAP_HUGETLB, MAP_POPULATE, MAP_SHARED};
-use mmap;
+//use libc::{MAP_ANON, MAP_HUGETLB, MAP_POPULATE, MAP_SHARED};
+use memmap2;
 
 /// Represents a consecutive region of physical memory pinned in memory.
 pub struct DevMem {
-    mapping: mmap::MemoryMap,
+    mapping: memmap2::MmapMut,
 }
 
-const MAP_HUGE_SHIFT: usize = 26;
-const MAP_HUGE_2MB: i32 = 21 << MAP_HUGE_SHIFT;
-const MAP_HUGE_1GB: i32 = 30 << MAP_HUGE_SHIFT;
+//const MAP_HUGE_SHIFT: usize = 26;
+//const MAP_HUGE_2MB: i32 = 21 << MAP_HUGE_SHIFT;
+//const MAP_HUGE_1GB: i32 = 30 << MAP_HUGE_SHIFT;
 
 pub const FOUR_KIB: usize = 4 * 1024;
 pub const TWO_MIB: usize = 2 * 1024 * 1024;
@@ -49,8 +49,8 @@ pub enum AllocError {
     Pin,
 }
 
-impl From<mmap::MapError> for AllocError {
-    fn from(_e: mmap::MapError) -> Self {
+impl From<std::io::Error> for AllocError {
+    fn from(_e: std::io::Error) -> Self {
         AllocError::Map
     }
 }
@@ -61,22 +61,27 @@ impl DevMem {
     pub fn alloc(size: usize) -> Result<DevMem, AllocError> {
         assert!(size == FOUR_KIB || size == TWO_MIB || size == ONE_GIB);
 
-        let mut non_standard_flags = MAP_SHARED | MAP_ANON | MAP_POPULATE;
-        match size {
-            TWO_MIB => non_standard_flags |= MAP_HUGETLB | MAP_HUGE_2MB,
-            ONE_GIB => non_standard_flags |= MAP_HUGETLB | MAP_HUGE_1GB,
-            _ => (),
-        }
+        // We need to support this again at some point, currently memmap2 does
+        // not support it: Without we don't know it will be physically
+        // consecutive, so driver has to use mmu...
+        //        let mut non_standard_flags = MAP_SHARED | MAP_ANON | MAP_POPULATE;
+        //        match size {
+        //            TWO_MIB => non_standard_flags |= MAP_HUGETLB | MAP_HUGE_2MB,
+        //            ONE_GIB => non_standard_flags |= MAP_HUGETLB | MAP_HUGE_1GB,
+        //            _ => (),
+        //        }
+        //
+        //        let flags = [
+        //            mmap::MapOption::MapNonStandardFlags(non_standard_flags),
+        //            mmap::MapOption::MapReadable,
+        //            mmap::MapOption::MapWritable,
+        //        ];
 
-        let flags = [
-            mmap::MapOption::MapNonStandardFlags(non_standard_flags),
-            mmap::MapOption::MapReadable,
-            mmap::MapOption::MapWritable,
-        ];
-        let res = mmap::MemoryMap::new(size, &flags)?;
+        let res = memmap2::MmapMut::map_anon(size)?;
+        res.advise(memmap2::Advice::HugePage)?;
 
         // Make sure memory is not swapped:
-        let lock_ret = unsafe { libc::mlock(res.data() as *const libc::c_void, res.len()) };
+        let lock_ret = unsafe { libc::mlock(res.as_ptr() as *const libc::c_void, res.len()) };
         if lock_ret == -1 {
             return Err(AllocError::Pin);
         }
@@ -92,16 +97,16 @@ impl DevMem {
 
     /// Returns the virtual address of the memory region.
     pub fn virtual_address(&self) -> usize {
-        self.as_mut_ptr() as usize
+        self.mapping.as_ptr() as usize
     }
 
     /// Returns a pointer to the memory region.
-    pub fn as_mut_ptr(&self) -> *mut u8 {
-        self.mapping.data()
+    pub fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.mapping.as_mut_ptr()
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        unsafe { core::slice::from_raw_parts(self.mapping.data(), self.len()) }
+        &self.mapping
     }
 
     /// Returns the size of the memory region.
