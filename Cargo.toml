@@ -28,7 +28,7 @@ x86 = { version = "0.52", features = ["unstable"] }
 armv8 = "0.0.1"
 
 [build-dependencies]
-pciid-parser = "0.5.0"
+pciid-parser = "0.6.2"
 phf_codegen = "0.10.0"
 
 [[bin]]
