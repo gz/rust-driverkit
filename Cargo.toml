@@ -1,6 +1,6 @@
 [package]
 name = "driverkit"
-version = "0.24.0"
+version = "0.25.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>", "Reto Achermann <achreto@gmail.com>", "Erika Hunhoff <hunhoff.erika@gmail.com>", "Ankit Bhardwaj <bhrdwj.ankit@gmail.com>"]
 readme = "README.md"
 description = "A driver framework defining standard types and interfaces for writing device drivers."
