@@ -29,7 +29,7 @@ armv8 = "0.0.1"
 
 [build-dependencies]
 pciid-parser = "0.5.0"
-phf_codegen = "0.10.0"
+phf_codegen = "0.11.2"
 
 [[bin]]
 name = "testdrive"
